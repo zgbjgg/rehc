@@ -1,7 +1,7 @@
 rehc
 ====
 
-REHC A remote control and monitor for applications
+REHC remote control and monitor for applications
 
 description
 ====
