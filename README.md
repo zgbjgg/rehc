@@ -39,6 +39,7 @@ A .rhec files are configured with a simple parameters, you can define one file p
 monitoring, the structure of a file contains the nexts flags and looks like this:
 
 -app
+
 -start
 
 6) Compile and start
