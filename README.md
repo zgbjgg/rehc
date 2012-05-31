@@ -7,6 +7,8 @@ description
 ====
 
 REHC allows control and monitoring applications remotely, if the application was down, RHEC could restart it.
+RHEC needs the protocol (rsh or ssh). You can log into the remote host memebers of the cluster wothout a 
+password prompt.
 
 
 install instructions
