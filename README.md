@@ -38,7 +38,7 @@ which are defined to configure parmeters of the application.
 A .rhec files are configured with a simple parameters, you can define one file per one application to 
 monitoring, the structure of a file contains the nexts flags and looks like this:
 
--app "Name" # Name of your application
+-app "Name" # Name of your application \n
 -start "Start" # The command to start the application
 -stop "Stop" # The command to stop the application
 -test "Test" # The command to test if the application si running
