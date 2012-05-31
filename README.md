@@ -7,8 +7,8 @@ description
 ====
 
 REHC allows control and monitoring applications remotely, if the application was down, RHEC could restart it.
-RHEC needs the protocol (rsh or ssh). You can log into the remote host memebers of the cluster wothout a 
-password prompt.
+RHEC needs the protocol (rsh or ssh) configured properly. You must able to log into the remote hosts, members of the 
+cluster wothout a password prompt.
 
 
 install instructions
@@ -38,9 +38,17 @@ which are defined to configure parmeters of the application.
 A .rhec files are configured with a simple parameters, you can define one file per one application to 
 monitoring, the structure of a file contains the nexts flags and looks like this:
 
--app
+-app "Name" # Name of your application.
 
--start
+-start "Start" # The command to start the application.
+
+-stop "Stop" # The command to stop the application.
+
+-test "Test" # The command to test if the application si running-
+
+-off "Off" # When the application is down, the message. 
+
+-node "Node" # Host short name member of the cluster which the application resides.
 
 6) Compile and start
 
