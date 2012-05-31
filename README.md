@@ -16,7 +16,7 @@ install instructions
 
 1) Clone the project
 				
-				$ git clone 
+				$ git clone https://jorgegarrido@github.com/jorgegarrido/rehc.git
 
 2) Into REHC
 
