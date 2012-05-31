@@ -38,12 +38,12 @@ which are defined to configure parmeters of the application.
 A .rhec files are configured with a simple parameters, you can define one file per one application to 
 monitoring, the structure of a file contains the nexts flags and looks like this:
 
--app "Name" # Name of your application \n
--start "Start" # The command to start the application
--stop "Stop" # The command to stop the application
--test "Test" # The command to test if the application si running
--off "Off" # When the application is down, the message 
--node "Node" # Host short name member of the cluster which the application resides
+-app "Name" # Name of your application.
+-start "Start" # The command to start the application.
+-stop "Stop" # The command to stop the application.
+-test "Test" # The command to test if the application si running-
+-off "Off" # When the application is down, the message. 
+-node "Node" # Host short name member of the cluster which the application resides.
 
 6) Compile and start
 
