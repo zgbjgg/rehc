@@ -32,10 +32,9 @@
 -module(rehc_cluster).
 -vsn("1.0").
 -behaviour(gen_server).
-
+-include("rehc.hrl").
 %% API
--export([start_link/0, add_node/3, stop/0, request/4,
-	 get_nodes/0]).
+-export([start_link/0, add_node/3, stop/0, get_nodes/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -54,10 +53,6 @@ add_node(Host, Name, Ip) ->
 
 get_nodes() ->
     gen_server:call(?MODULE, getting_nodes).
-
-request(Host, M, F, A) ->
-    MadeNode = rehc_utility:make_node(Host, "rehc"),
-    gen_server:call(?MODULE, {requesting, MadeNode, M, F, A}).
 
 stop() ->
     gen_server:call(?MODULE, stop).
@@ -91,12 +86,12 @@ start_link() ->
 init([Config]) ->
     process_flag(trap_exit, true),
     Nodes = [begin
-  		 O="-setcookie "++proplists:get_value(cookie,Config),
-  		 S=proplists:get_value(slave, Config),
-  		 {ok, Node} = slave:start(Host, S, O),
-  		 error_logger:info_msg("Started slave ~p at ~p", [Node,Ip]),
+		 Opt = ?COOKIE(Config),
+  		 Sname = ?SNAME(Config),
+  		 {ok, Node} = slave:start(Host, Sname, Opt),
+		 ?LOG_INFO(?START_SLAVE, [Node, Ip]),
   		 {Node, Ip}
-  	     end || {Host, Ip} <- proplists:get_value(servers,Config)],
+  	     end || {Host, Ip} <- rehc_utility:get_value(Config, servers)],
     {ok, #state{nodes=Nodes}, 1000}.
 
 %%--------------------------------------------------------------------
@@ -115,20 +110,14 @@ init([Config]) ->
 %%--------------------------------------------------------------------
 handle_call({adding_node, Host, Name, Ip}, _From, State=#state{nodes=N}) ->
     {ok, Config} = application:get_env(rehc, cluster),
-    O = "-setcookie "++proplists:get_value(cookie,Config),
-    {ok, Node} = slave:start(Host, Name, O),
+    Opt = ?COOKIE(Config),
+    {ok, Node} = slave:start(Host, Name, Opt),
     {NewState, Reply} =
 	case net_adm:ping(Node) of
 	    pong -> {State#state{nodes=[{Node,Ip}]++N}, {ok, connected}};
 	    _    -> {State#state{nodes=[]++N}, {nok, could_not_connect}}
 	end,
     {reply, Reply, NewState, 1000};
-handle_call({requesting, Node, M, F, A}, _From, State)                   ->
-    Reply = case rpc:call(Node, M, F, A) of
-		{badrpc, X} -> {nok, X};
-		Res         -> {ok, Res}
-	    end,
-    {reply, Reply, State, 1000};
 handle_call(getting_nodes, _From, State=#state{nodes=N})                 ->
     {reply, N, State, 1000};
 handle_call(stop, _From, State)                                          ->
@@ -162,11 +151,11 @@ handle_info(timeout, State=#state{nodes=N}) ->
     Restarted =
 	[begin
 	     {ok, Config} = application:get_env(rehc, cluster),
-	     O = "-setcookie "++proplists:get_value(cookie,Config),
-	     error_logger:error_msg("Node disconnected: ~p at ~p~n", [Node,Ip]),
+	     Opt = ?COOKIE(Config),
+	     ?LOG_WARN(?DISCONNECTED_SLAVE, [Node, Ip]),
 	     {Host, Name} = rehc_utility:unmake_node(Node),
-	     {ok, RestartedNode} = slave:start(Host,Name,O),
-	     error_logger:info_msg("Restarted node ~p at ~p~n", [Node, Ip]),
+	     {ok, RestartedNode} = slave:start(Host,Name,Opt),
+	     ?LOG_INFO(?RESTORE_SLAVE, [Node, Ip]),
 	     {RestartedNode, Ip}
 	 end || {Node, Ip}=X <- N, false==lists:member(X, Connected)],
     {noreply, State#state{nodes=Connected++Restarted}, 1000}.

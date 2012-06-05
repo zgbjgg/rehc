@@ -42,7 +42,7 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {appmon=[]}).
+-record(state, {appmon=[], timeout}).
 
 %%%===================================================================
 %%% API
@@ -52,13 +52,13 @@ get_state() ->
     gen_server:call(?MODULE, getting_state).
 
 add_app(A) ->
-    gen_server:call(?MODULE, {adding_app,A}).
+    gen_server:cast(?MODULE, {adding_app,A}).
 
 remove_app(A) ->
     gen_server:cast(?MODULE, {removing_app, A}).
 
 next_attempt(A) ->
-    gen_server:call(?MODULE, {attempting, A}).
+    gen_server:cast(?MODULE, {attempting, A}).
 
 
 %%--------------------------------------------------------------------
@@ -69,7 +69,9 @@ next_attempt(A) ->
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+    {ok, RehcCore} = application:get_env(rehc, rehc_core),
+    [Max] = rehc_utility:get_values(RehcCore, [max_time_restart]),
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [Max], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -86,9 +88,13 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
+init([Max]) ->
     process_flag(trap_exit,true),
-    {ok, #state{appmon=[]}, 1000}.
+    {ok, RehcCore} = application:get_env(rehc, rehc_core),
+    [ Mnesia ] = rehc_utility:get_values(RehcCore, [mnesia]),
+    {ok, M} = rehc_utility:mnesia_support(Mnesia, RehcCore),
+    ?LOG_INFO(?MNESIA, [ M ]),
+    {ok, #state{appmon=[], timeout=Max}, Max}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -104,30 +110,7 @@ init([]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({adding_app, A}, _From, State=#state{appmon=D}) ->
-    [ _, _, NodeFlag, StartFlag, StopFlag,
-      AppFlag ] = rehc_utility:get_values(A,["test","off","node","start",
-					     "stop","app"]),
-    Cmms = [StopFlag, "killall -9 "++AppFlag, StartFlag],
-    Perform =
-	[ begin
-	      {S, _} = rehc_cluster:request(NodeFlag, os, cmd, [Cmm]), S
-	  end || Cmm <- Cmms ],
-    Reply = lists:last(Perform),
-    {reply, Reply, State#state{appmon=[A]++D}, 50000};
-handle_call({attempting, A}, _From, State=#state{appmon=D}) ->
-    [ _, _, NodeFlag, StartFlag, StopFlag,
-      AppFlag ] = rehc_utility:get_values(A,["test","off","node","start",
-					     "stop","app"]),
-    ?ATTEMPT_LOG(AppFlag),
-    Cmms = [StopFlag, "killall -9 "++AppFlag, StartFlag],
-    Perform =
-	[ begin
-	      {ok, _} = rehc_cluster:request(NodeFlag, os, cmd, [Cmm])
-	  end || Cmm <- Cmms ],
-    {Reply,_} = lists:last(Perform),
-    {reply, Reply, State#state{appmon=D}, 50000};
-handle_call(getting_state, _From, State=#state{appmon=D}) ->
+handle_call(getting_state, _From, State=#state{appmon=D,timeout=_Max}) ->
     {reply, D, State, 1000}.
 
 %%--------------------------------------------------------------------
@@ -140,8 +123,17 @@ handle_call(getting_state, _From, State=#state{appmon=D}) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_cast({adding_app, A}, State=#state{appmon=D, timeout=Max}) ->
+    {ok, _} = rehc_utility:perform(A),
+    {noreply, State#state{appmon=[A]++D, timeout=Max}, Max};
+handle_cast({attempting, A}, State=#state{appmon=_D, timeout=Max}) ->
+    [ AppFlag, Node ] = rehc_utility:get_values(A, ["app", "node"]),
+    ?LOG_WARN(?ATTEMPT, [ AppFlag, Node ]),
+    {ok, _} = rehc_utility:perform(A),
+    {noreply, State, Max};
+handle_cast({removing_app, A}, State=#state{appmon=D, timeout=Max}) ->
+    NewState = D -- [A],
+    {noreply, State#state{appmon=NewState, timeout=Max}, Max}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -153,7 +145,7 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, State=#state{appmon=D}) ->
+handle_info(timeout, State=#state{appmon=D, timeout=Max}) ->
     St = [ begin
 	       {Y,App} = rehc_utility:status(A),
 	       case Y of
@@ -162,7 +154,7 @@ handle_info(timeout, State=#state{appmon=D}) ->
 	       end
 	   end || A <- D ],
     NewState = rehc_utility:no_empty_lists(St),
-    {noreply, State#state{appmon=NewState}, 50000}.
+    {noreply, State#state{appmon=NewState,timeout=Max}, Max}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -175,9 +167,10 @@ handle_info(timeout, State=#state{appmon=D}) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, #state{appmon=D}) ->
+terminate(Reason, #state{appmon=D, timeout=_Max}) ->
+    ?LOG_ERROR(?TERMINATE, [Reason]),
     [ begin
-	  [AppFlag] = rehc_utility:get_values(A, ["app"]),
+	  [ AppFlag ] = rehc_utility:get_values(A, ["app"]),
 	  ok = rehc_monitor:restore(A, AppFlag)
       end || A <- D ], 
     ok.

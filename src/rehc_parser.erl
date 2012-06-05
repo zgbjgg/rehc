@@ -33,24 +33,26 @@
 -vsn("1.0").
 -export([get_config/1]).
 
-%%--------------------------------------------------------------------
-%% create the configuration, read the files and parse them, for each
-%% file, create a new list with the parameters used internally by
-%% the system
+%% =============================/ get_config  \===================================
+%% Create the configuration, read the files and parse them, for each file, create
+%% a new list with the parameters used internally by the system.
+%% ===============================================================================
 get_config(Dir) ->
     Files = lists:filter(fun(X) -> filelib:is_file(X) end,
 			 filelib:wildcard(Dir ++ "/*.rehc")),
     {ok, unzipped_files(Files)}.
 
-%%---------------------------------------------------------------------
+%% ========================/ unzipped_files  \===================================
 %% Unzipped files values, is a ListOfLists!
+%% ==============================================================================
 unzipped_files([])             -> [];
 unzipped_files([File | Files]) ->
     {ok, IoDev} = file:open(File, [read]),
     [unzip(IoDev, []) | unzipped_files(Files)].
     
-%%---------------------------------------------------------------------
+%% ==================================/ unzip \===================================
 %% Unzip file
+%% ==============================================================================
 unzip(IoDev, Acc) ->
     case io:get_line(IoDev, "") of
 	eof    ->

@@ -102,7 +102,7 @@ init([Config]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call({restoring, A, App}, _From, State=#state{appmon=H})  ->
-    ?RESTORE_LOG(App),
+    ?LOG_INFO(?RESTORE, [App]),
     {reply, ok, State#state{appmon=H++[A]}, 1000};
 handle_call(getting_state, _From, State=#state{appmon=H}) ->
     {reply, H, State, 1000}.
@@ -136,9 +136,8 @@ handle_info(timeout, State=#state{appmon=H}) ->
 	       case Y of
 		   ok -> A;
 		   nok ->
-		       ?ERROR_LOG(App),
-		       ok = rehc_support:add_app(A),
-		       []
+		       ?LOG_WARN(?DOWN_APP, [App]),
+		       ok = rehc_support:add_app(A),[]
 	       end
 	   end || A <- H ],
     NewState = rehc_utility:no_empty_lists(St),

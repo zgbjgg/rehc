@@ -31,63 +31,99 @@
 %% ===============================================================================
 -module(rehc_utility).
 -vsn("1.0").
--export([make_node/2, unmake_node/1, parse_request/1, retrieve_pid/1,
-	 no_empty_lists/1, get_value/2, get_values/2, status/1]).
+-export([make_node/2, unmake_node/1, parse_request/1, mnesia_support/2,
+	 no_empty_lists/1, get_value/2, get_values/2, status/1,
+	 rpc/4, perform/1]).
 
-%%--------------------------------------------------------------------
-%% Make node
+%% ===========================/ make_node \======================================
+%% Make node, it looks like: 'name_node@hostname'
+%% ==============================================================================
 make_node(Host, Name) ->
     Node = Name++"@"++Host,
     list_to_atom(Node).
 
-%%--------------------------------------------------------------------
-%% Unmake node
+%% ==========================/ unmake_node \=====================================
+%% Unmake node, it looks like: "name_node@hostname"
+%% ==============================================================================
 unmake_node(Node) when is_atom(Node) ->
     unmake_node(atom_to_list(Node));
 unmake_node(Node) when is_list(Node) ->
     [Name,Host]=re:split(Node, "[@]", [{return, list}, trim]),
     {Host, Name}.
 
-%%--------------------------------------------------------------------
-%% Parse simple command
+%% =========================/ parse_request \====================================
+%% Parse the response of a command executed on remote host
+%% ==============================================================================
 parse_request(Req) ->
     R = re:split(Req, "[\n]", [{return, list}, trim]),
     R1 = re:split(R, "[ ]", [{return, list}, trim]),
-    no_empty_lists(R1).
+    one_list(no_empty_lists(R1)).
 
-
-%%--------------------------------------------------------------------
-%% Command to get pid on OS based on UNIX
-retrieve_pid(App) ->
-    Cmd = "ps -eo pid,args | grep "++App++" | grep -v grep | cut -c1-6",
-    list_to_atom(Cmd).
-
-%%--------------------------------------------------------------------
-%% No empty elements in a list
+%% =========================/ no_empty_lists \===================================
+%% No empty elements (lists) in a list
+%% ==============================================================================
 no_empty_lists([])      -> [];
 no_empty_lists([[]| T]) -> no_empty_lists(T);
 no_empty_lists([H | T]) -> [H] ++ no_empty_lists(T).
 
-%%--------------------------------------------------------------------
-%% Retrieve values of a proplist
+%% ===============================/ one_list \===================================
+%% one list represented as string  
+%% ==============================================================================
+one_list([])      -> [];
+one_list([H | T]) -> H ++ (T).
+
+%% ==============================/ get_value \===================================
+%% Get value of a proplist
+%% ==============================================================================
 get_value(Proplist, AnyKey) ->
-    [ Value || {Key, Value} <- Proplist, Key == AnyKey ].
+    V = [ Value || {Key, Value} <- Proplist, Key == AnyKey ],
+    case V of [] -> undefined; _ -> [Vv] = V, Vv end.
 
-%%--------------------------------------------------------------------
-%% Return values of a proplist
+%% ==============================/ get_value \===================================
+%% Get values of a proplist
+%% ==============================================================================
 get_values(Proplist, Keys) ->
-    [ proplists:get_value(Key, Proplist) || Key <- Keys ].
+    [ get_value(Proplist, Key) || Key <- Keys ].
 
-%%--------------------------------------------------------------------
-%% Status for the application
+%% =================================/ status \===================================
+%% Status of application, possible reponses are: {ok, App} | {nok, App}
+%% ==============================================================================
 status(A) ->
     [ TestFlag, FlagInoff, NodeFlag,
       AppFlag ] = rehc_utility:get_values(A,["test","off","node","app"]),
-    {ok, State} = rehc_cluster:request(NodeFlag, os, cmd, [TestFlag]),
+    {ok, State} = rpc(NodeFlag, os, cmd, [TestFlag]),
     case re:run(State, FlagInoff) of
 	{match, _} -> {nok, AppFlag};
 	nomatch    -> {ok, AppFlag}
     end.
-    
+%% =================================/ status \===================================
+%% Remote procedure call to node
+%% ==============================================================================
+rpc(Node, M, F, A) when is_atom(Node) ->
+    case rpc:call(Node, M, F, A) of
+	{badrpc, _}=X -> X;
+	X             -> {ok, X}
+    end;
+rpc(Host, M, F, A)                    ->
+    Node = make_node(Host, "rehc"),
+    rpc(Node, M, F, A).
 
+%% ================================/ perform \===================================
+%% Perform actions to stop, kill and start the application
+%% ==============================================================================
+perform(A) ->
+    [ NodeFlag, StartFlag, StopFlag,
+      AppFlag ] = get_values(A, ["node", "start", "stop", "app"]),
+    Cmms = [ StopFlag, "killall -9 "++ AppFlag, StartFlag],
+    Performed = [ rpc(NodeFlag, os, cmd, [Cmm]) || Cmm <- Cmms ],
+    {ok, {A, Performed}}.
 
+%% ===============================/ mnesia_support \============================
+%% Enable or disabled mnesia support
+%% =============================================================================
+mnesia_support(disabled, _) ->
+    {ok, disabled};
+mnesia_support(enabled, RehcCore) ->
+    ok = mnesia:start(),
+    rehc_sync:init(RehcCore),
+    {ok, enabled}.
