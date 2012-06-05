@@ -1,6 +1,6 @@
 %% ==============================================================================
 %
-% REHC INCLUDE FILE	
+% REHC SYNCRHONICITY MNESIA 
 %
 % Copyright (c) 2012 Jorge Garrido <jorge.garrido@morelosoft.com>.
 % All rights reserved.
@@ -29,30 +29,45 @@
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 % POSSIBILITY OF SUCH DAMAGE.
 %% ===============================================================================
+-module(rehc_sync).
+-vsn("1.0").
+-export([init/1]).
+-include("rehc.hrl").
 
-%============================/ Logs \=============================================
--define(LOG_INFO(Log, Args), error_logger:info_msg("[REHC INFO]~n"++Log, Args)).
--define(LOG_ERROR(Log, Args), error_logger:error_msg("[REHC_ERROR]~n"++Log,Args)).
--define(LOG_WARN(Log, Args), error_logger:warning_msg("[REHC WARNING]~n"++Log,Args)).
--define(LOG_DEBUG(Log, Args), error_logger:info_msg("[REHC DEBUG]~n"++Log,Args)).
+%% ==================================/ init  \===================================
+%% Starts the synchronization and prints the info about restored records 
+%% ==============================================================================
+init(RehcCore) ->
+    [ Nodes ] = rehc_utility:get_values(RehcCore, [mnesia_nodes]),
+    [ begin
+	  Req = tasks(Nodes),
+	  Printable = info(Nodes, Req),
+	  [ ?LOG_INFO(?RESTORE_DB, [R, N]) || {N, R} <- Printable ]
+     end || Node <- Nodes, net_adm:ping(Node) == pong ].
 
-%=============================/ String Messages \=================================
--define(DOWN_APP, "~p down! ~n").
--define(ATTEMPT, "~p: trying restart at ~p ......~n").
--define(RESTORE, "~p: restart [OK] ~n").
--define(RESTORE_DB, "~p restored of remote node ~p ~n").
--define(RESTORE_SLAVE, "Restarted node '~p' at ~p~n").
--define(MNESIA, "~p mnesia sync ~n").
--define(TERMINATE, "Filed server support for reason:~n ~p ~n").
--define(START_SLAVE, "Started slave '~p' at ~p ~n").
--define(DISCONNECTED_SLAVE, "Node '~p' disconnected at ~p ~n").
+%% ===============================/ tasks \======================================
+%% Execute performed tasks to synchronize mnesia database
+%% ==============================================================================
+tasks([])               -> [];
+tasks([ Node | Nodes ]) ->
+    {ok,_} = rehc_utility:rpc(Node,mnesia,change_config,?CHANGE_CONFIG),
+    {ok,NodeTables}=rehc_utility:rpc(Node,mnesia,system_info,?SYSTEM_INFO),
+    [ begin
+	  Res = {atomic, ok},
+	  {ok,Res}=rehc_utility:rpc(Node,mnesia,add_table_copy,
+					?ADD_TABLE_COPY(Table,ram_copies)),
+	  {Node, Table}
+      end || Table <- NodeTables, Table =/= schema ] ++ tasks(Nodes).
 
-%===========================/ Mnesia Parameters \================================
--define(CHANGE_CONFIG, [extra_db_nodes, [node()]]).
--define(SYSTEM_INFO, [tables]).
--define(ADD_TABLE_COPY(Tb, Tp), [Tb, node(), Tp]).
+%% ===============================/ info \ =====================================
+%% Print info about restored records
+%% =============================================================================
+info([], _)                 -> [];
+info([ Node | Nodes ], Req) ->
+    Fun = fun({N,_}, Acc) -> case N of Node -> Acc + 1; _ -> Acc end end,
+    [{Node, lists:foldl(Fun, 0, Req)} | info(Nodes, Req) ].
+			  
+		  
 
-%=================================/ Nodes \======================================
--define(COOKIE(Args), "-setcookie "++proplists:get_value(cookie, Args)).
--define(SNAME(Args), proplists:get_value(slave, Args)).
 
+    
