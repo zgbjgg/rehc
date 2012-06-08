@@ -1,6 +1,6 @@
 %% ==============================================================================
 %
-% REHC MONITOR	
+% REHC LOAD AVERAGE	
 %
 % Copyright (c) 2012 Jorge Garrido <jorge.garrido@morelosoft.com>.
 % All rights reserved.
@@ -29,13 +29,12 @@
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 % POSSIBILITY OF SUCH DAMAGE.
 %% ===============================================================================
--module(rehc_monitor).
+-module(rehc_loadavg).
 -vsn("1.0").
 -behaviour(gen_server).
 -include("rehc.hrl").
-
 %% API
--export([start_link/0, get_state/0, restore/2]).
+-export([start_link/0, get/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -43,18 +42,13 @@
 
 -define(SERVER, ?MODULE). 
 
--record(state, {appmon=[]}).
+-record(state, {cpu=[], mem=[], prev}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-
-get_state() ->
-    gen_server:call(?MODULE, getting_state).
-
-restore(A, App) ->
-    gen_server:call(?MODULE, {restoring, A, App}).
-
+get() ->
+    gen_server:call(?MODULE, get).
 %%--------------------------------------------------------------------
 %% @doc
 %% Starts the server
@@ -63,10 +57,7 @@ restore(A, App) ->
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    {ok, RehcCore} = application:get_env(rehc, rehc_core),
-    [RehcConfigDir] = rehc_utility:get_values(RehcCore, [rehc_config_dir]),
-    {ok, Config} = rehc_parser:get_config(RehcConfigDir),
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [Config], []).
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -83,9 +74,10 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([Config]) ->
-    process_flag(trap_exit, true),
-    {ok, #state{appmon=Config}, 1000}.
+init([]) ->
+    {Total, Idle} = rehc_parser:grep_cpu(),
+    %rehc_utility:calc_cpu(Total, Idle, PrevTotal, PrevIdle),
+    {ok, #state{cpu=[], mem=[], prev={Total, Idle}}, 1000}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -101,11 +93,8 @@ init([Config]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({restoring, A, App}, _From, State=#state{appmon=H})  ->
-    ?LOG_INFO(?RESTORE, [ App ]),
-    {reply, ok, State#state{appmon=H++[A]}, 1000};
-handle_call(getting_state, _From, State=#state{appmon=H}) ->
-    {reply, H, State, 1000}.
+handle_call(get, _From, State) ->
+    {reply, State, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -130,17 +119,12 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, State=#state{appmon=H}) ->
-    St = [ begin
-	       case rehc_utility:status(A) of
-		   {ok, _}    -> A;
-		   {nok, App} -> ?LOG_WARN(?DOWN_APP, [App]),
-				 ok = rehc_support:add_app(A), []
-	       end
-	   end || A <- H ],
-    NewState = rehc_utility:no_empty_lists(St),
-    {noreply, State#state{appmon=NewState}, 1000}.
-	    
+handle_info(timeout, #state{cpu=_C,mem=_M,prev={PrevTotal, PrevIdle}}) ->
+    {Total, Idle} = rehc_parser:grep_cpu(),
+    Usage = rehc_utility:calc_cpu(Total, Idle, PrevTotal, PrevIdle),
+    io:format("[REHC INFO] CPU: ~p%", [ Usage ]),
+    io:format("\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s~c",[13]),
+    {noreply, #state{cpu=[],mem=[],prev={Total, Idle}}, 1000}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -170,5 +154,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-	    

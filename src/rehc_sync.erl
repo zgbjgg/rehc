@@ -1,6 +1,6 @@
 %% ==============================================================================
 %
-% REHC SYNCRHONICITY MNESIA 
+% REHC SYNCHRONICITY MNESIA 
 %
 % Copyright (c) 2012 Jorge Garrido <jorge.garrido@morelosoft.com>.
 % All rights reserved.

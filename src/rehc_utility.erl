@@ -33,7 +33,7 @@
 -vsn("1.0").
 -export([make_node/2, unmake_node/1, parse_request/1, mnesia_support/2,
 	 no_empty_lists/1, get_value/2, get_values/2, status/1,
-	 rpc/4, perform/1]).
+	 rpc/4, perform/1, add_values/1, get_element/2, calc_cpu/4]).
 
 %% ===========================/ make_node \======================================
 %% Make node, it looks like: 'name_node@hostname'
@@ -127,3 +127,27 @@ mnesia_support(enabled, RehcCore) ->
     ok = mnesia:start(),
     rehc_sync:init(RehcCore),
     {ok, enabled}.
+
+%% ===============================/ add_values \================================
+%% Add values: list of strings 
+%% =============================================================================
+add_values([])                 -> 0;
+add_values([ Value | Values ]) ->
+    list_to_integer(Value) + add_values(Values).
+
+%% ==============================/ get_element \================================
+%% Get element on a given position
+%% =============================================================================
+get_element(L, Pos) -> get_element(L, Pos, 1).
+get_element([], _, _)                                -> undefined;
+get_element([ H | _ ], Pos, InPos) when Pos == InPos -> H;
+get_element([ _ | T ], Pos, InPos)                   ->
+    get_element(T, Pos, InPos + 1).
+
+%% =============================/ calc_cpu \====================================
+%% Calculate used percent of CPU 
+%% =============================================================================
+calc_cpu(Total, Idle, PrevTotal, PrevIdle) ->
+    DiffIdle = Idle - PrevIdle,
+    DiffTotal = Total - PrevTotal,
+    (1000 * (DiffTotal - DiffIdle) / DiffTotal + 5 ) / 10.

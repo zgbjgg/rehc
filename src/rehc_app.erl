@@ -41,6 +41,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
+    application:start(sasl),
     rehc_sup:start_link().
 
 stop(_State) ->

@@ -57,5 +57,6 @@ init([]) ->
     SupFlags = {one_for_one, 1000, 3600},
     {ok, { SupFlags, [?CHILD(rehc_cluster, worker),
 		      ?CHILD(rehc_monitor, worker),
-		      ?CHILD(rehc_support, worker)]} }.
+		      ?CHILD(rehc_support, worker),
+		      ?CHILD(rehc_loadavg, worker)]} }.
 

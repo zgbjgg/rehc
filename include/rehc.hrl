@@ -56,3 +56,7 @@
 -define(COOKIE(Args), "-setcookie "++proplists:get_value(cookie, Args)).
 -define(SNAME(Args), proplists:get_value(slave, Args)).
 
+%================================/ LOAD AVERAGE \================================
+-define(PROC_MEMINFO, "/proc/meminfo").
+-define(PROC_STAT, "/proc/stat").
+

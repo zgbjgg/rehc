@@ -31,7 +31,8 @@
 %% ===============================================================================
 -module(rehc_parser).
 -vsn("1.0").
--export([get_config/1]).
+-export([get_config/1, grep_cpu/0]).
+-include("rehc.hrl").
 
 %% =============================/ get_config  \===================================
 %% Create the configuration, read the files and parse them, for each file, create
@@ -63,4 +64,21 @@ unzip(IoDev, Acc) ->
 	    [_,Key] = re:split(Flag,"[- ]",[{return,list}, trim]),
 	    unzip(IoDev, [{Key, Value} | Acc])
     end.
-	    
+
+%% ===============================/ grep_cpu \===================================
+%% Get the line that starts with 'cpu' on file /proc/stat 
+%% ==============================================================================
+grep_cpu() ->
+    {ok, Line} = rehc_utility:rpc('rehc@remote_host', os, cmd,
+				  ["cat "++?PROC_STAT++" | grep '^cpu '"]),
+    [ L ] = re:split(Line, "[\n]", [{return, list}, trim]),
+    [ "cpu", [] | Values ] = re:split(L, "[ ]", [{return, list}, trim]),
+    Total = rehc_utility:add_values(Values),
+    Idle = list_to_integer(rehc_utility:get_element(Values, 4)),
+    {Total, Idle}.
+
+
+
+
+
+    

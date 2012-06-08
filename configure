@@ -1,0 +1,55 @@
+#! /bin/bash 
+DEPS=( ssh-agent ssh rebar erl run_erl to_erl )
+ON_FAIL="nok"
+ON_SUCCED="ok"
+RUN_USER_COMMANDS=()
+MAKEFILE=Makefile
+
+checking() {
+	if ! which $1 > /dev/null 2>&1; then
+		echo $ON_FAIL
+	else
+		echo $ON_SUCCED
+	fi
+}
+
+for DEP in "${DEPS[@]}"; do
+	echo -ne "checking for $DEP....."
+	STAT=$( checking $DEP )
+	if [ $STAT = $ON_FAIL ]; then
+		echo -e "no\n[ERROR] for checking $DEP"
+		break
+	else
+		echo "yes"
+		USER_COMMAND=$(command -v $DEP)
+		RUN_USER_COMMANDS=( "${RUN_USER_COMMANDS[@]}" "$USER_COMMAND" )	
+	fi
+done
+
+RUN_ERL=RUN_ERL:=${RUN_USER_COMMANDS[4]}
+TO_ERL=TO_ERL:=${RUN_USER_COMMANDS[5]}
+ERL=ERL:=${RUN_USER_COMMANDS[3]}
+REBAR_CONFIG=REBAR_CONFIG:=$(pwd)/rebar.config
+EBIN_DIR=EBIN_DIR:=$(pwd)/ebin
+ARGS_FILE=ARGS_FILE:=$(pwd)/etc/vm.args
+CONFIG_FILE=CONFIG_FILE:=$(pwd)/etc/rehc.config
+LOGS_DIR=LOGS_DIR:=/var/log/
+PIPES_DIR=PIPES_DIR:=/tmp/
+
+USER_ENVIRONMENT=( "1i$RUN_ERL" "1i$TO_ERL" "1i$ERL"
+	 	   "1i$REBAR_CONFIG" "1i$EBIN_DIR"
+		   "1i$ARGS_FILE" "1i$CONFIG_FILE"
+		   "1i$LOGS_DIR" "1i$PIPES_DIR" )
+
+if [ ${#RUN_USER_COMMANDS[*]} = ${#DEPS[*]} ]
+	then
+		echo -ne "creating makefile....."
+		rm -rf $MAKEFILE
+		cat $MAKEFILE.tmp >> $MAKEFILE
+		for X in "${USER_ENVIRONMENT[@]}"; do
+			sed -i $X $MAKEFILE  
+		done
+		echo "yes" 
+else
+	echo "nothing to do for make"
+fi  
