@@ -112,9 +112,9 @@ if [ ${#RUN_USER_COMMANDS[*]} = ${#DEPS[*]} ]
 			sed -i $X $MAKEFILE  
 		done
 		## some string replaced
-		sed -i 's/<//g' $MAKEFILE
-		sed -i 's/>//g' $MAKEFILE
-		sed -i 's/;/;\'\\\\n\\t'/g' $MAKEFILE
+		sed -ie 's/<//g' $MAKEFILE
+		sed -ie 's/>//g' $MAKEFILE
+		sed -ie 's/;/;\'\\\\n\\t'/g' $MAKEFILE
 		echo "yes" 
 else
 	## when nothing to do for make
