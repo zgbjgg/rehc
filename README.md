@@ -7,8 +7,8 @@ description
 ====
 
 REHC allows control and monitoring applications remotely, if the application was down, RHEC could restart it.
-RHEC needs the protocol (rsh or ssh) configured properly. You must able to log into the remote hosts, members of the 
-cluster wothout a password prompt.
+RHEC needs the protocol (rsh or ssh) configured properly. You must be able to log into the remote hosts, members of the 
+cluster without a password prompt.
 
 
 install instructions
@@ -50,9 +50,7 @@ monitoring, the structure of a file contains the nexts flags and looks like this
 
 When the configuration is complete:
 				
-				$ make all
-				
-make all, compile and start RHEC 
+				$ ./configure && make && make install 
 
 Congratulations!! RHEC is monitoring and control your remote applications, take a rest and enjoy it!!
 
