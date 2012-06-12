@@ -1,7 +1,4 @@
-#! /bin/bash 
-#==============================================================================
-#
-# CONFIGURE FILE
+#! /bin/bash
 #
 # Copyright (c) 2012 Jorge Garrido <jorge.garrido@morelosoft.com>.
 # All rights reserved.
@@ -29,13 +26,17 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#===============================================================================
-DEPS=( ssh-agent ssh rebar erl run_erl to_erl )
+#
+## variables definition 
+DEPS=( ssh-agent ssh erl run_erl to_erl )
 ON_FAIL="nok"
 ON_SUCCED="ok"
 RUN_USER_COMMANDS=()
 MAKEFILE=Makefile
 
+## check if dependencie is installed and available for the user
+## if the dependencie is available, then return ok 
+## if the dependencie is unavailable, then return nok
 checking() {
 	if ! which $1 > /dev/null 2>&1; then
 		echo $ON_FAIL
@@ -43,12 +44,13 @@ checking() {
 		echo $ON_SUCCED
 	fi
 }
-
+## append the path to the dependencie in the array, these paths
+## will be used for create appropiate Makefile for the run user
 for DEP in "${DEPS[@]}"; do
 	echo -ne "checking for $DEP....."
 	STAT=$( checking $DEP )
 	if [ $STAT = $ON_FAIL ]; then
-		echo -e "no\n[ERROR] for checking $DEP"
+		echo -e "no\nfor checking $DEP, please install"
 		break
 	else
 		echo "yes"
@@ -56,31 +58,65 @@ for DEP in "${DEPS[@]}"; do
 		RUN_USER_COMMANDS=( "${RUN_USER_COMMANDS[@]}" "$USER_COMMAND" )	
 	fi
 done
-
-RUN_ERL=RUN_ERL:=${RUN_USER_COMMANDS[4]}
-TO_ERL=TO_ERL:=${RUN_USER_COMMANDS[5]}
-ERL=ERL:=${RUN_USER_COMMANDS[3]}
-REBAR_CONFIG=REBAR_CONFIG:=$(pwd)/rebar.config
+## variables to append in the Makefile for the run user
+## variables for this script contain the variable name and value of the
+## variable used in the Makefile
+RUN_ERL=RUN_ERL:=${RUN_USER_COMMANDS[3]}
+TO_ERL=TO_ERL:=${RUN_USER_COMMANDS[4]}
+ERL=ERL:=${RUN_USER_COMMANDS[2]}
 EBIN_DIR=EBIN_DIR:=$(pwd)/ebin
 ARGS_FILE=ARGS_FILE:=$(pwd)/etc/vm.args
 CONFIG_FILE=CONFIG_FILE:=$(pwd)/etc/rehc.config
 LOGS_DIR=LOGS_DIR:=/var/log/
 PIPES_DIR=PIPES_DIR:=/tmp/
+LOCAL_DIR=LOCAL_DIR:=$(pwd)
 
-USER_ENVIRONMENT=( "1i$RUN_ERL" "1i$TO_ERL" "1i$ERL"
-	 	   "1i$REBAR_CONFIG" "1i$EBIN_DIR"
-		   "1i$ARGS_FILE" "1i$CONFIG_FILE"
-		   "1i$LOGS_DIR" "1i$PIPES_DIR" )
-
+## user environment for the Makefile creation, created as an array
+USER_ENVIRONMENT=( "4i$RUN_ERL" "4i$TO_ERL" "4i$ERL" "4i$EBIN_DIR" "4i$ARGS_FILE" 
+		   "4i$CONFIG_FILE" "4i$LOGS_DIR" "4i$PIPES_DIR" "4i$LOCAL_DIR" )
+## check if the run_user_commands is the same as dependencies (array lenght) 
+## then create the Makefile and append the missing headers (variables on array)
+## use the template for Makefile, Makefile.in which contains all definition for target 
+## rules
+HEADER='# Makefile.  Generated from Makefile.in by configure.'
+HEADER_C='# Copyright (c) 2012 Jorge Garrido <jorge.garrido@morelosoft.com>.'
 if [ ${#RUN_USER_COMMANDS[*]} = ${#DEPS[*]} ]
 	then
+		## when is ready to create Makefile
 		echo -ne "creating makefile....."
 		rm -rf $MAKEFILE
-		cat $MAKEFILE.tmp >> $MAKEFILE
+		echo $HEADER >> $MAKEFILE
+		echo $HEADER_C >> $MAKEFILE
+		echo "" >> $MAKEFILE
+		while read lw
+		do
+			if [[ $lw == -TARGET* ]];
+			then
+				A_T=${lw#-TARGET=*}
+				TARGET=${A_T%-DEPENDENCIES=*}
+				A_D=${A_T#*-DEPENDENCIES=}
+				DEPENDENCIES=${A_D%-COMMANDS*}
+				
+				echo $TARGET: $DEPENDENCIES >> $MAKEFILE
+			elif [[ $lw == %%* ]];
+			then
+				echo "" >> $MAKEFILE
+			elif [[ $lw == ">" ]];
+			then
+				echo "" >> $MAKEFILE
+			else
+				echo -e "\t$lw" >> $MAKEFILE
+			fi				  
+		done < "$MAKEFILE.in"	
 		for X in "${USER_ENVIRONMENT[@]}"; do
 			sed -i $X $MAKEFILE  
 		done
+		## some string replaced
+		sed -i 's/<//g' $MAKEFILE
+		sed -i 's/>//g' $MAKEFILE
+		sed -i 's/;/;\'\\\\n\\t'/g' $MAKEFILE
 		echo "yes" 
 else
+	## when nothing to do for make
 	echo "nothing to do for make"
-fi  
+fi

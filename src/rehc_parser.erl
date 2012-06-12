@@ -69,7 +69,7 @@ unzip(IoDev, Acc) ->
 %% Get the line that starts with 'cpu' on file /proc/stat 
 %% ==============================================================================
 grep_cpu() ->
-    {ok, Line} = rehc_utility:rpc('rehc@remote_host', os, cmd,
+    {ok, Line} = rehc_utility:rpc('', os, cmd,
 				  ["cat "++?PROC_STAT++" | grep '^cpu '"]),
     [ L ] = re:split(Line, "[\n]", [{return, list}, trim]),
     [ "cpu", [] | Values ] = re:split(L, "[ ]", [{return, list}, trim]),
