@@ -67,8 +67,8 @@ ERL=ERL:=${RUN_USER_COMMANDS[2]}
 EBIN_DIR=EBIN_DIR:=$(pwd)/ebin
 ARGS_FILE=ARGS_FILE:=$(pwd)/etc/vm.args
 CONFIG_FILE=CONFIG_FILE:=$(pwd)/etc/rehc.config
-LOGS_DIR=LOGS_DIR:=/var/log/
-PIPES_DIR=PIPES_DIR:=/tmp/
+LOGS_DIR=LOGS_DIR:=$(pwd)/logs/
+PIPES_DIR=PIPES_DIR:=$(pwd)/pipes/
 LOCAL_DIR=LOCAL_DIR:=$(pwd)
 
 ## user environment for the Makefile creation, created as an array

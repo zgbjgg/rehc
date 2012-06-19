@@ -45,6 +45,8 @@
 >
 
 -TARGET=install -DEPENDENCIES=<ebin/*.beam .service .daemon> -COMMANDS <
+	mkdir -p pipes
+	mkdir -p logs
 	@cp .daemon /usr/bin/
 	@mv /usr/bin/.daemon /usr/bin/rehc
         @chmod 755 /usr/bin/rehc
@@ -67,4 +69,6 @@
 	@rm -rf /etc/init.d/rehc
 	@rm -rf /usr/bin/rehc
 	@rm -rf Makefile
+	@rm -rf pipes
+	@rm -rf logs
 >
