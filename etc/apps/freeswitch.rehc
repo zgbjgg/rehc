@@ -1,6 +1,0 @@
--app "freeswitch"
--start "/usr/local/freeswitch/bin/freeswitch -nc"
--stop "killall -9 freeswitch"
--test "/usr/local/freeswitch/bin/fs_cli -x bgapi"
--off "ERROR"
--node "server_jopper"
