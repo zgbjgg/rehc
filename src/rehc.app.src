@@ -4,9 +4,6 @@
   {vsn, "1.0"},
   {modules, [rehc_app,rehc_sup,rehc_cluster]},
   {registered, [rehc_app,rehc_sup,rehc_cluster]},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
+  {applications,[ kernel, stdlib, sasl]},
   {mod, { rehc_app, []}}
  ]}.

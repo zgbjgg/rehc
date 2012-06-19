@@ -21,6 +21,7 @@
 >
 
 -TARGET=clean -DEPENDENCIES=<> -COMMANDS <
+	rm -rf erl_crash.dump
 	for FILE in `ls ebin/`;\
                 do\
                 rm -rf ebin/$$FILE;\
@@ -36,7 +37,6 @@
 >
 
 -TARGET=start -DEPENDENCIES=<ebin/*.beam> -COMMANDS <
-	@echo -ne "Starting: "
 	@$(RUN_ERL) -daemon $(PIPES_DIR) $(LOGS_DIR) "exec $(ERL) -config $(CONFIG_FILE) -args_file $(ARGS_FILE) -pa $(EBIN_DIR)/ -eval 'application:start(rehc).'" 
 >
 
@@ -46,17 +46,18 @@
 
 -TARGET=install -DEPENDENCIES=<ebin/*.beam .service .daemon> -COMMANDS <
 	@cp .daemon /usr/bin/
-	@cp .service /etc/init.d/
 	@mv /usr/bin/.daemon /usr/bin/rehc
+        @chmod 755 /usr/bin/rehc
+        sed -i "s;%%LOCAL_DIR%%;LOCAL_DIR=$(LOCAL_DIR);g" /usr/bin/rehc
+	sed -i "s;%%ERL%%;erl=$(ERL);g" /usr/bin/rehc
+	@cp .service /etc/init.d/
 	@mv /etc/init.d/.service /etc/init.d/rehc
-	chmod 755 /usr/bin/rehc
-	chmod 755 /etc/init.d/rehc 	
-	sed -i "s;%%LOCAL_DIR%%;LOCAL_DIR=$(LOCAL_DIR);g" /usr/bin/rehc
-	sed -i "s;%%RUNNER%%;RUNNER=$(USER);g" /etc/init.d/rehc		 
+	@chmod 755 /etc/init.d/rehc
+	sed -i "s;%%RUNNER%%;RUNNER=$(USER);g" /etc/init.d/rehc
 	sed -i "s;%%DAEMON%%;DAEMON=/usr/bin/rehc;g" /etc/init.d/rehc
-	chkconfig --add rehc;\
-	chkconfig --level 2345 rehc on;\
-	service rehc start
+	chkconfig --add rehc
+        chkconfig --level 2345 rehc on
+        service rehc start
 >
 
 -TARGET=uninstall -DEPENDENCIES=</usr/bin/rehc /etc/init.d/rehc> -COMMANDS <

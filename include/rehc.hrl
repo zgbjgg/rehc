@@ -36,6 +36,10 @@
 -define(LOG_WARN(Log, Args), error_logger:warning_msg("[REHC WARNING]~n"++Log,Args)).
 -define(LOG_DEBUG(Log, Args), error_logger:info_msg("[REHC DEBUG]~n"++Log,Args)).
 
+%============================/ External Logs \====================================
+-define(DATE_LOG, rehc_utility:formatted_date()++" "++rehc_utility:formatted_time()).
+-define(INFO_MSG(Msg, Args), io:format("[ REHC INFO ] " ++ Msg, Args)).
+
 %=============================/ String Messages \=================================
 -define(DOWN_APP, "~p down! ~n").
 -define(ATTEMPT, "~p: trying restart at ~p ......~n").
@@ -46,6 +50,8 @@
 -define(TERMINATE, "Filed server support for reason:~n ~p ~n").
 -define(START_SLAVE, "Started slave '~p' at ~p ~n").
 -define(DISCONNECTED_SLAVE, "Node '~p' disconnected at ~p ~n").
+-define(APP, "Node ~p ==>  [ app ~p :  status : ~p ] ~n").
+-define(LA, " ==~s== ~n CPU: ~p % \t ~s \t ~s ~n ~n").
 
 %===========================/ Mnesia Parameters \================================
 -define(CHANGE_CONFIG, [extra_db_nodes, [node()]]).
@@ -57,6 +63,7 @@
 -define(SNAME(Args), proplists:get_value(slave, Args)).
 
 %================================/ LOAD AVERAGE \================================
--define(PROC_MEMINFO, "/proc/meminfo").
--define(PROC_STAT, "/proc/stat").
+-define(PROC_MEMINFO, ["cat /proc/meminfo | grep '^MemTotal: '",
+		       "cat /proc/meminfo | grep '^MemFree: '"]).
+-define(PROC_STAT, "cat /proc/stat | grep '^cpu '").
 

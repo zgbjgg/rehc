@@ -1,6 +1,6 @@
 %% ==============================================================================
 %
-% REHC PARSER	
+% REHC COMMAND LINE TOOLS
 %
 % Copyright (c) 2012 Jorge Garrido <jorge.garrido@morelosoft.com>.
 % All rights reserved.
@@ -29,43 +29,34 @@
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 % POSSIBILITY OF SUCH DAMAGE.
 %% ===============================================================================
--module(rehc_parser).
+-module(rehc_clt).
 -vsn("1.0").
--export([get_config/1]).
 -include("rehc.hrl").
+-export([show_apps/0, show_loadavg/1]).
 
-%% =============================/ get_config  \===================================
-%% Create the configuration, read the files and parse them, for each file, create
-%% a new list with the parameters used internally by the system.
-%% ===============================================================================
-get_config(Dir) ->
-    Files = lists:filter(fun(X) -> filelib:is_file(X) end,
-			 filelib:wildcard(Dir ++ "/*.rehc")),
-    {ok, unzipped_files(Files)}.
-
-%% ========================/ unzipped_files  \===================================
-%% Unzipped files values, is a ListOfLists!
+%% ============================/ show_apps \=====================================
+%% Tool to show applications state
 %% ==============================================================================
-unzipped_files([])             -> [];
-unzipped_files([File | Files]) ->
-    {ok, IoDev} = file:open(File, [read]),
-    [unzip(IoDev, []) | unzipped_files(Files)].
-    
-%% ==================================/ unzip \===================================
-%% Unzip file
+show_apps() ->
+    Apps = rehc_monitor:get_state(),
+    Appsd = [ [{status, support}]++App || App <- rehc_support:get_state() ],
+    [ begin
+	  [ AppFlag, Node,
+	    Status ] = rehc_utility:get_values(App, ["app","node",status]),
+	  case Status of
+	      undefined ->
+		  ?INFO_MSG("~n~p~n~n", [[ Node, AppFlag, {ok, running} ]]);
+	      _         ->
+		  ?INFO_MSG("~n~p~n~n", [[ Node, AppFlag, {nok, on_support}]])
+	  end
+      end || App <- Apps ++ Appsd ].
+
+%% =========================/ show_loadavg \=====================================
+%% Tool to show load average for a remote host
 %% ==============================================================================
-unzip(IoDev, Acc) ->
-    case io:get_line(IoDev, "") of
-	eof    ->
-	    file:close(IoDev),
-	    Acc;
-	Line   ->
-	    [Flag,Value,_]=re:split(Line, "[\"\"]", [{return, list}, trim]),
-	    [_,Key] = re:split(Flag,"[- ]",[{return,list}, trim]),
-	    unzip(IoDev, [{Key, Value} | Acc])
-    end.
-
-
-
-
+show_loadavg(Ip) ->
+    [ Node ] = [ N || {N, NIp} <- rehc_cluster:get_nodes(), NIp ==Ip], 
+    Pid = rehc_loadavg:init(Node),
+    Pid ! start.
     
+

@@ -1,6 +1,6 @@
 %% ==============================================================================
 %
-% REHC LOAD AVERAGE	
+% REHC LOAD AVERAGE
 %
 % Copyright (c) 2012 Jorge Garrido <jorge.garrido@morelosoft.com>.
 % All rights reserved.
@@ -31,126 +31,59 @@
 %% ===============================================================================
 -module(rehc_loadavg).
 -vsn("1.0").
--behaviour(gen_server).
 -include("rehc.hrl").
-%% API
--export([start_link/0, get/0]).
+-export([init/1]).
 
-%% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+%% =================================/ init \=====================================
+%% Spawn a new child to monitor the status of remmote host (cpu, mem)
+%% ==============================================================================
+init(Node) ->
+    spawn(fun() -> loop(Node, 0, 0) end).
 
--define(SERVER, ?MODULE). 
+%% =================================/ loop \=====================================
+%% Simple loop to refresh info every second
+%% ==============================================================================
+loop(Node, PrevTotal, PrevIdle) ->
+    receive
+	start ->
+	    {Total, Idle} = proc_stat(Node),
+	    loop(Node, Total, Idle);
+	stop  ->
+	    ok
+    after 1000 ->
+	    {Total, Idle} = proc_stat(Node),
+	    Usage = calc_cpu(Total, Idle, PrevTotal, PrevIdle),
+	    {MemTotal, MemFree} = proc_meminfo(Node),
+	    ?INFO_MSG(?LA, [?DATE_LOG, Usage, MemTotal, MemFree]),
+	    loop(Node, Total, Idle)
+    end.
 
--record(state, {cpu=[], mem=[], prev}).
+%% ===============================/ proc_stat \==================================
+%% Get the line that starts with 'cpu' on file /proc/stat and return some values
+%% ==============================================================================
+proc_stat(Node) ->
+    {ok, Line} = rehc_utility:rpc(Node, os, cmd,[?PROC_STAT]),
+    [ L ] = re:split(Line, "[\n]", [{return, list}, trim]),
+    [ "cpu", [] | Values ] = re:split(L, "[ ]", [{return, list}, trim]),
+    Total = rehc_utility:add_values(Values),
+    Idle = list_to_integer(rehc_utility:get_element(Values, 4)),
+    {Total, Idle}.
 
-%%%===================================================================
-%%% API
-%%%===================================================================
-get() ->
-    gen_server:call(?MODULE, get).
-%%--------------------------------------------------------------------
-%% @doc
-%% Starts the server
-%%
-%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
-%% @end
-%%--------------------------------------------------------------------
-start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+%% ===========================/ proc_meminfo \===================================
+%% Parse file /proc/meminfo 
+%% ==============================================================================
+proc_meminfo(Node) ->
+    [ Total, Free ] = ?PROC_MEMINFO,
+    {ok, LineT} = rehc_utility:rpc(Node, os, cmd, [ Total ]),
+    {ok, LineF} = rehc_utility:rpc(Node, os, cmd, [ Free ]),
+    [ T ] = re:split(LineT, "[\n]", [{return, list}, trim]),
+    [ F ] = re:split(LineF, "[\n]", [{return, list}, trim]),
+    {T, F}.
 
-%%%===================================================================
-%%% gen_server callbacks
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Initiates the server
-%%
-%% @spec init(Args) -> {ok, State} |
-%%                     {ok, State, Timeout} |
-%%                     ignore |
-%%                     {stop, Reason}
-%% @end
-%%--------------------------------------------------------------------
-init([]) ->
-    {Total, Idle} = rehc_parser:grep_cpu(),
-    %rehc_utility:calc_cpu(Total, Idle, PrevTotal, PrevIdle),
-    {ok, #state{cpu=[], mem=[], prev={Total, Idle}}, 1000}.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling call messages
-%%
-%% @spec handle_call(Request, From, State) ->
-%%                                   {reply, Reply, State} |
-%%                                   {reply, Reply, State, Timeout} |
-%%                                   {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, Reply, State} |
-%%                                   {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
-handle_call(get, _From, State) ->
-    {reply, State, State}.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling cast messages
-%%
-%% @spec handle_cast(Msg, State) -> {noreply, State} |
-%%                                  {noreply, State, Timeout} |
-%%                                  {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
-handle_cast(_Msg, State) ->
-    {noreply, State}.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling all non call/cast messages
-%%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
-handle_info(timeout, #state{cpu=_C,mem=_M,prev={PrevTotal, PrevIdle}}) ->
-    {Total, Idle} = rehc_parser:grep_cpu(),
-    Usage = rehc_utility:calc_cpu(Total, Idle, PrevTotal, PrevIdle),
-    io:format("[REHC INFO] CPU: ~p%", [ Usage ]),
-    io:format("\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s~c",[13]),
-    {noreply, #state{cpu=[],mem=[],prev={Total, Idle}}, 1000}.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% This function is called by a gen_server when it is about to
-%% terminate. It should be the opposite of Module:init/1 and do any
-%% necessary cleaning up. When it returns, the gen_server terminates
-%% with Reason. The return value is ignored.
-%%
-%% @spec terminate(Reason, State) -> void()
-%% @end
-%%--------------------------------------------------------------------
-terminate(_Reason, _State) ->
-    ok.
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Convert process state when code is changed
-%%
-%% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
-%% @end
-%%--------------------------------------------------------------------
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
-
-%%%===================================================================
-%%% Internal functions
-%%%===================================================================
+%% =============================/ calc_cpu \====================================
+%% Calculate used percent of CPU 
+%% =============================================================================
+calc_cpu(Total, Idle, PrevTotal, PrevIdle) ->
+    DiffIdle = Idle - PrevIdle,
+    DiffTotal = Total - PrevTotal,
+    (1000 * (DiffTotal - DiffIdle) / DiffTotal + 5 ) / 10.
