@@ -66,6 +66,7 @@ stop() ->
 %%--------------------------------------------------------------------
 start_link() ->
     {ok, Config} = application:get_env(rehc, cluster),
+    [ok | _ ] = ssh_config(Config),
     gen_server:start_link({local, ?SERVER}, ?MODULE, [Config], []).
 
 %%%===================================================================
@@ -91,7 +92,7 @@ init([Config]) ->
   		 {ok, Node} = slave:start(Host, Sname, Opt),
 		 ?LOG_INFO(?START_SLAVE, [Node, Ip]),
   		 {Node, Ip}
-  	     end || {Host, Ip} <- rehc_utility:get_value(Config, servers)],
+  	     end || {Host, Ip, _} <- rehc_utility:get_value(Config, servers)],
     {ok, #state{nodes=Nodes}, 1000}.
 
 %%--------------------------------------------------------------------
@@ -188,3 +189,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+ssh_config(Config) ->
+    [HomeDir]=re:split(os:cmd("echo $HOME"),"[\n]",[{return,list}, trim]),
+    os:cmd("rm -rf " ++ HomeDir ++ "/.ssh/config"),
+    {ok, IoDev} = file:open(HomeDir ++ "/.ssh/config", [write, append]),
+    Servers = rehc_utility:get_value(Config, servers),
+    [ begin
+	  io:format(IoDev, "Host\t~s~n\tHostname ~s~n\tPort ~p~n\tUser ~s~n",
+		    [HostName, HostName, Port, User])
+      end || {HostName, _, [{user, User}, {port, Port}]} <- Servers ].
