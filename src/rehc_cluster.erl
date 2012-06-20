@@ -66,7 +66,7 @@ stop() ->
 %%--------------------------------------------------------------------
 start_link() ->
     {ok, Config} = application:get_env(rehc, cluster),
-    [ok | _ ] = ssh_config(Config),
+    [] = ssh_config(Config),
     gen_server:start_link({local, ?SERVER}, ?MODULE, [Config], []).
 
 %%%===================================================================
@@ -197,4 +197,5 @@ ssh_config(Config) ->
     [ begin
 	  io:format(IoDev, "Host\t~s~n\tHostname ~s~n\tPort ~p~n\tUser ~s~n",
 		    [HostName, HostName, Port, User])
-      end || {HostName, _, [{user, User}, {port, Port}]} <- Servers ].
+      end || {HostName, _, [{user, User}, {port, Port}]} <- Servers ],
+    os:cmd("chmod 600 " ++ HomeDir ++ "/.ssh/config").
