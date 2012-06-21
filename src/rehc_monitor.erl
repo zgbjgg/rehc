@@ -53,7 +53,7 @@ get_state() ->
     gen_server:call(?MODULE, getting_state).
 
 restore(A, App) ->
-    gen_server:call(?MODULE, {restoring, A, App}).
+    gen_server:cast(?MODULE, {restoring, A, App}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -101,9 +101,6 @@ init([Config]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({restoring, A, App}, _From, State=#state{appmon=H})  ->
-    ?LOG_INFO(?RESTORE, [ App ]),
-    {reply, ok, State#state{appmon=H++[A]}, 1000};
 handle_call(getting_state, _From, State=#state{appmon=H}) ->
     {reply, H, State, 1000}.
 
@@ -117,8 +114,10 @@ handle_call(getting_state, _From, State=#state{appmon=H}) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_cast({restoring, A, App}, State=#state{appmon=H})  ->
+    ?LOG_INFO(?RESTORE, [ App ]),
+    rehc_mailer:send(App, "Restarted and available :)"),
+    {noreply, State#state{appmon=H++[A]}, 1000}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -134,8 +133,10 @@ handle_info(timeout, State=#state{appmon=H}) ->
     St = [ begin
 	       case rehc_utility:status(A) of
 		   {ok, _}    -> A;
-		   {nok, App} -> ?LOG_WARN(?DOWN_APP, [App]),
-				 ok = rehc_support:add_app(A), []
+		   {nok, App} ->
+		       ?LOG_WARN(?DOWN_APP, [App]),
+		       rehc_mailer:send(App, "Unavailable"),
+		       ok = rehc_support:add_app(A), []
 	       end
 	   end || A <- H ],
     NewState = rehc_utility:no_empty_lists(St),

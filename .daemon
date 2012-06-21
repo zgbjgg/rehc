@@ -54,12 +54,14 @@ rpc() {
 }
 
 
-## To each case: start | stop | console
+## To each case: start | stop | console | load-avg | show-apps | cluster | help 
 ## start: enter to Makefile previously generated, target start
 ## stop: kill the process id
 ## console: enter to Makefile previously generated, target console 
 ## load-avg: load average of a remote host
 ## show-apps: show apps configured for remote hosts 
+## cluster: show info about clustered hosts
+## help: prints info about rehc
 if [ $1 = 'start' ]
 	then
 		make -C $LOCAL_DIR start
@@ -75,9 +77,12 @@ elif [ $1 = 'load-avg' ]
 elif [ $1 = 'show-apps' ]
 	then
 		rpc_stop rehc_clt show_apps []
+elif [ $1 = 'cluster' ]
+	then
+		rpc_stop rehc_clt cluster []
 elif [ $1 = 'help' ]
 	then
 		less $LOCAL_DIR/README.md
 else
-	echo "Usage $0 {start|stop|console}"
+	echo "Try 'rehc help' for more information"
 fi

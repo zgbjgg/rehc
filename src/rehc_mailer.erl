@@ -1,6 +1,6 @@
 %% ==============================================================================
 %
-% REHC COMMAND LINE TOOLS
+% REHC MAILER
 %
 % Copyright (c) 2012 Jorge Garrido <jorge.garrido@morelosoft.com>.
 % All rights reserved.
@@ -29,35 +29,21 @@
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 % POSSIBILITY OF SUCH DAMAGE.
 %% ===============================================================================
--module(rehc_clt).
+-module(rehc_mailer).
 -vsn("1.0").
--include("rehc.hrl").
--export([show_apps/0, show_loadavg/1, cluster/0]).
+-export([send/2]).
 
-%% ============================/ show_apps \=====================================
-%% Tool to show applications state
+%% =================================/ send \=====================================
+%% Send mail to notify about application state
 %% ==============================================================================
-show_apps() ->
-    Apps = rehc_monitor:get_state(),
-    [ begin
-	  [ AppFlag, Node ] = rehc_utility:get_values(App, ["app","node"]),
-	  ?INFO_MSG("~p~n", [[ Node, AppFlag, {ok, running} ]])
-      end || App <- Apps ].
+send(App, Msg) ->
+    [ os:cmd("echo \""++Msg++"\"| mail -s \""++App++"\" "++Email) ||
+	Email <- emails() ].
 
-%% =========================/ show_loadavg \=====================================
-%% Tool to show load average for a remote host
+%% ===============================/ emails \=====================================
+%% Get list of emails configured to receive notifications 
 %% ==============================================================================
-show_loadavg(Ip) ->
-    [ Node ] = [ N || {N, NIp} <- rehc_cluster:get_nodes(), NIp ==Ip], 
-    Pid = rehc_loadavg:init(Node),
-    Pid ! start.
-
-%% =========================/ show_cluster \=====================================
-%% Tool to show remote host configured
-%% ==============================================================================
-cluster() ->    
-    Cluster = rehc_cluster:get_nodes(),
-    [ begin
-	  ?INFO_MSG("{~p, ~s}~n", [Node, Ip])
-      end || {Node, Ip} <- Cluster ].
-
+emails() ->
+    {ok, RehcMail} = application:get_env(rehc, rehc_email), 
+    [ Emails ] = rehc_utility:get_value(RehcMail, mail),
+    Emails.

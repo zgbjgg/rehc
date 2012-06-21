@@ -38,7 +38,7 @@
 
 %============================/ External Logs \====================================
 -define(DATE_LOG, rehc_utility:formatted_date()++" "++rehc_utility:formatted_time()).
--define(INFO_MSG(Msg, Args), io:format("[ REHC INFO ] " ++ Msg, Args)).
+-define(INFO_MSG(Msg, Args), io:format(Msg, Args)).
 
 %=============================/ String Messages \=================================
 -define(DOWN_APP, "~p down! ~n").
