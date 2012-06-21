@@ -53,6 +53,8 @@ rpc() {
 	$erl -noshell -sname $tmp -setcookie $cookie -eval 'rpc:call('"$node"'@'"$hostname"', '"$1"', '"$2"', '"$3"')'
 }
 
+## if the first argument is not provided
+[ "$#" -eq 0 ] && echo "Try 'rehc help' for more information" && exit 1
 
 ## To each case: start | stop | console | load-avg | show-apps | cluster | help 
 ## start: enter to Makefile previously generated, target start
@@ -62,27 +64,27 @@ rpc() {
 ## show-apps: show apps configured for remote hosts 
 ## cluster: show info about clustered hosts
 ## help: prints info about rehc
-if [ $1 = 'start' ]
-	then
-		make -C $LOCAL_DIR start
-elif [ $1 = 'stop' ]
-	then
-		kill -9 $2
-elif [ $1 = 'console' ]
-	then
-		make -C $LOCAL_DIR console
-elif [ $1 = 'load-avg' ]
-	then
-		rpc rehc_clt show_loadavg [\"$2\"]
-elif [ $1 = 'show-apps' ]
-	then
-		rpc_stop rehc_clt show_apps []
-elif [ $1 = 'cluster' ]
-	then
-		rpc_stop rehc_clt cluster []
-elif [ $1 = 'help' ]
-	then
-		less $LOCAL_DIR/README.md
+if [ $1 = 'start' -a "$#" -eq 1 ]
+        then
+                make -C $LOCAL_DIR start
+elif [ $1 = 'stop' -a "$#" -eq 1 ]
+        then
+                kill -9 $2
+elif [ $1 = 'console' -a "$#" -eq 1 ]
+        then
+                make -C $LOCAL_DIR console
+elif [ $1 = 'load-avg' -a "$#" -eq 2 ]
+        then
+                rpc rehc_clt show_loadavg [\"$2\"]
+elif [ $1 = 'show-apps' -a "$#" -eq 1 ]
+        then
+                rpc_stop rehc_clt show_apps []
+elif [ $1 = 'cluster' -a "$#" -eq 1 ]
+        then
+                rpc_stop rehc_clt cluster []
+elif [ $1 = 'help' -a "$#" -eq 1 ]
+        then
+                less $LOCAL_DIR/README.md
 else
-	echo "Try 'rehc help' for more information"
+        echo "Try 'rehc help' for more information"
 fi
