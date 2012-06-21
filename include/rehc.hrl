@@ -53,6 +53,10 @@
 -define(APP, "Node ~p ==>  [ app ~p :  status : ~p ] ~n").
 -define(LA, " ==~s== ~n CPU: ~p % \t ~s \t ~s ~n ~n").
 
+%===========================/ Mail Messages \====================================
+-define(MAIL(Date, App, Ip, Log), Date++" \n RHEC MAIL \n \n \t Application:"++
+	App++" \n \t Ip: "++Ip++" \n \t Reason:"++Log++" \n \n \n 2012 - REHC -").
+
 %===========================/ Mnesia Parameters \================================
 -define(CHANGE_CONFIG, [extra_db_nodes, [node()]]).
 -define(SYSTEM_INFO, [tables]).

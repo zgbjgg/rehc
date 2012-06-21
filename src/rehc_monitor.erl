@@ -116,7 +116,7 @@ handle_call(getting_state, _From, State=#state{appmon=H}) ->
 %%--------------------------------------------------------------------
 handle_cast({restoring, A, App}, State=#state{appmon=H})  ->
     ?LOG_INFO(?RESTORE, [ App ]),
-    rehc_mailer:send(App, "Restarted and available :)"),
+    rehc_mailer:send(A, App, "Restarted and now available"),
     {noreply, State#state{appmon=H++[A]}, 1000}.
 
 %%--------------------------------------------------------------------
@@ -135,7 +135,7 @@ handle_info(timeout, State=#state{appmon=H}) ->
 		   {ok, _}    -> A;
 		   {nok, App} ->
 		       ?LOG_WARN(?DOWN_APP, [App]),
-		       rehc_mailer:send(App, "Unavailable"),
+		       rehc_mailer:send(A, App, "Unavailable"),
 		       ok = rehc_support:add_app(A), []
 	       end
 	   end || A <- H ],

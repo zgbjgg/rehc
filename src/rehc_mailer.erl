@@ -31,13 +31,19 @@
 %% ===============================================================================
 -module(rehc_mailer).
 -vsn("1.0").
--export([send/2]).
+-include("rehc.hrl").
+-export([send/3]).
 
 %% =================================/ send \=====================================
 %% Send mail to notify about application state
 %% ==============================================================================
-send(App, Msg) ->
-    [ os:cmd("echo \""++Msg++"\"| mail -s \""++App++"\" "++Email) ||
+send(A, App, Reason) ->
+    Host = rehc_utility:get_value(A, "node"),
+    NodeIn = rehc_utility:make_node(Host, "rehc"),
+    Nodes = rehc_cluster:get_nodes(),
+    [ Ip ] = [ Ip || {Node, Ip} <- Nodes, Node == NodeIn ],
+    Msg = ?MAIL(?DATE_LOG, App, Ip, Reason),
+    [ os:cmd("echo -e \""++Msg++"\"| mail -s \"Rehc\" "++Email) ||
 	Email <- emails() ].
 
 %% ===============================/ emails \=====================================
@@ -45,5 +51,4 @@ send(App, Msg) ->
 %% ==============================================================================
 emails() ->
     {ok, RehcMail} = application:get_env(rehc, rehc_email), 
-    [ Emails ] = rehc_utility:get_value(RehcMail, mail),
-    Emails.
+    rehc_utility:get_value(RehcMail, mail).
