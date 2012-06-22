@@ -84,7 +84,7 @@ elif [ $1 = 'cluster' -a "$#" -eq 1 ]
                 rpc_stop rehc_clt cluster []
 elif [ $1 = 'help' -a "$#" -eq 1 ]
         then
-                less $LOCAL_DIR/.man/./rehc
+                man $LOCAL_DIR/.man/./rehc
 else
         echo "Try 'rehc help' for more information"
 fi
