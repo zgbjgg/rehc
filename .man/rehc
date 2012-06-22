@@ -1,0 +1,32 @@
+.\" Manpage for rehc.
+.\" Contact jorge.garrido@morelosoft.com to correct errors or typos.
+.TH man 1 "21 Jun 2012" "1.0" "rehc man page"
+.SH NAME
+rehc \- command line tools for rehc
+.SH SYNOPSIS
+rehc [OPTION]... [ARGS]...
+.SH DESCRIPTION
+Provide command line tools to check status of clustered hosts.
+.SH OPTIONS
+Options for rehc command are:
+
+        start           Starts REHC application as daemon
+
+        stop <PID>      Stops REHC application, needs the pid of rhec as argument
+
+        console         Start console (erlang), be careful at this point!
+
+        load-avg <IP>   Calculate the percent used of cpu, memory total and
+                        memory free for a single host in the cluster, needs the
+                        host's ip as argument
+
+        show-apps       Show applications and status of them
+
+        cluster         Show host short names and ip's of cluster members
+
+        help            View this page
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Jorge Garrido (jorge.garrido@morelosoft.com)
+
