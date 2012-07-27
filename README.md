@@ -1,7 +1,7 @@
 rehc
 ====
 
-REHC remote control and monitor for applications
+REHC: remote erlang host control
 
 description
 ====
