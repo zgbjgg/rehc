@@ -67,7 +67,7 @@ rpc() {
 if [ $1 = 'start' -a "$#" -eq 1 ]
         then
                 make -C $LOCAL_DIR start
-elif [ $1 = 'stop' -a "$#" -eq 1 ]
+elif [ $1 = 'stop' -a "$#" -eq 2 ]
         then
                 kill -9 $2
 elif [ $1 = 'console' -a "$#" -eq 1 ]
