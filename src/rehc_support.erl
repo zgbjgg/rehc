@@ -127,7 +127,7 @@ handle_cast({adding_app, A}, State=#state{appmon=D, timeout=Max}) ->
     {ok, _} = rehc_utility:perform(A),
     {noreply, State#state{appmon=[A]++D, timeout=Max}, Max};
 handle_cast({attempting, A}, State=#state{appmon=_D, timeout=Max}) ->
-    [ AppFlag, Node ] = rehc_utility:get_values(A, ["app", "node"]),
+    [ AppFlag, Node ] = rehc_utility:get_values(A, [app, node]),
     ?LOG_WARN(?ATTEMPT, [ AppFlag, Node ]),
     {ok, _} = rehc_utility:perform(A),
     {noreply, State, Max};
@@ -170,7 +170,7 @@ handle_info(timeout, State=#state{appmon=D, timeout=Max}) ->
 terminate(Reason, #state{appmon=D, timeout=_Max}) ->
     ?LOG_ERROR(?TERMINATE, [Reason]),
     [ begin
-	  [ AppFlag ] = rehc_utility:get_values(A, ["app"]),
+	  [ AppFlag ] = rehc_utility:get_values(A, [app]),
 	  ok = rehc_monitor:restore(A, AppFlag)
       end || A <- D ], 
     ok.

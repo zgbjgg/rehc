@@ -38,7 +38,7 @@
 %% Send mail to notify about application state
 %% ==============================================================================
 send(A, App, Reason) ->
-    Host = rehc_utility:get_value(A, "node"),
+    Host = rehc_utility:get_value(A, node),
     NodeIn = rehc_utility:make_node(Host, "rehc"),
     Nodes = rehc_cluster:get_nodes(),
     [ Ip ] = [ Ip || {Node, Ip} <- Nodes, Node == NodeIn ],

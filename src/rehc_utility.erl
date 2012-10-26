@@ -91,7 +91,7 @@ get_values(Proplist, Keys) ->
 %% ==============================================================================
 status(A) ->
     [ TestFlag, FlagInoff, NodeFlag,
-      AppFlag ] = rehc_utility:get_values(A,["test","off","node","app"]),
+      AppFlag ] = rehc_utility:get_values(A, [test, off, node, app]),
     {ok, State} = rpc(NodeFlag, os, cmd, [TestFlag]),
     case re:run(State, FlagInoff) of
 	{match, _} -> {nok, AppFlag};
@@ -114,7 +114,7 @@ rpc(Host, M, F, A)                    ->
 %% ==============================================================================
 perform(A) ->
     [ NodeFlag, StartFlag, StopFlag,
-      AppFlag ] = get_values(A, ["node", "start", "stop", "app"]),
+      AppFlag ] = get_values(A, [ node, start, stop, app ]),
     Cmms = [ StopFlag, "killall -9 "++ AppFlag, StartFlag],
     Performed = [ rpc(NodeFlag, os, cmd, [Cmm]) || Cmm <- Cmms ],
     {ok, {A, Performed}}.

@@ -31,10 +31,10 @@
 %% ===============================================================================
 
 %============================/ Logs \=============================================
--define(LOG_INFO(Log, Args), error_logger:info_msg("[REHC INFO]~n"++Log, Args)).
--define(LOG_ERROR(Log, Args), error_logger:error_msg("[REHC_ERROR]~n"++Log,Args)).
--define(LOG_WARN(Log, Args), error_logger:warning_msg("[REHC WARNING]~n"++Log,Args)).
--define(LOG_DEBUG(Log, Args), error_logger:info_msg("[REHC DEBUG]~n"++Log,Args)).
+-define(LOG_INFO(Log, Args), error_logger:info_msg("(~p):[REHC INFO]~n"++Log, [self() | Args])).
+-define(LOG_ERROR(Log, Args), error_logger:error_msg("(~p):[REHC_ERROR]~n"++Log,[self() | Args])).
+-define(LOG_WARN(Log, Args), error_logger:warning_msg("(~p):[REHC WARNING]~n"++Log,[self() | Args])).
+-define(LOG_DEBUG(Log, Args), error_logger:info_msg("(~p):[REHC DEBUG]~n"++Log,[self() | Args])).
 
 %============================/ External Logs \====================================
 -define(DATE_LOG, rehc_utility:formatted_date()++" "++rehc_utility:formatted_time()).

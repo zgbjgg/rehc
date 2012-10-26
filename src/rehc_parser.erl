@@ -48,11 +48,11 @@ get_config(Dir) ->
 %% ==============================================================================
 unzipped_files([])             -> [];
 unzipped_files([File | Files]) ->
-    {ok, IoDev} = file:open(File, [read]),
-    [unzip(IoDev, []) | unzipped_files(Files)].
+    {ok, Unzip} = file:consult(File),
+    [ Unzip | unzipped_files(Files)].
     
 %% ==================================/ unzip \===================================
-%% Unzip file
+%% Unzip file (deprecated & actually no used)
 %% ==============================================================================
 unzip(IoDev, Acc) ->
     case io:get_line(IoDev, "") of
