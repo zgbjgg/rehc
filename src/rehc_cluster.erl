@@ -86,14 +86,15 @@ start_link() ->
 %%--------------------------------------------------------------------
 init([Config]) ->
     process_flag(trap_exit, true),
+    Opt = ?COOKIE(Config),
+    Sname = ?SNAME(Config),
     Nodes = [begin
-		 Opt = ?COOKIE(Config),
-  		 Sname = ?SNAME(Config),
   		 {ok, Node} = slave:start(Host, Sname, Opt),
 		 ?LOG_INFO(?START_SLAVE, [Node, Ip]),
   		 {Node, Ip}
   	     end || {Host, Ip, _} <- rehc_utility:get_value(Config, servers)],
-    {ok, #state{nodes=Nodes}, 1000}.
+    ok = net_kernel:monitor_nodes(true),
+    {ok, #state{nodes=Nodes}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -118,11 +119,11 @@ handle_call({adding_node, Host, Name, Ip}, _From, State=#state{nodes=N}) ->
 	    pong -> {State#state{nodes=[{Node,Ip}]++N}, {ok, connected}};
 	    _    -> {State#state{nodes=[]++N}, {nok, could_not_connect}}
 	end,
-    {reply, Reply, NewState, 1000};
+    {reply, Reply, NewState};
 handle_call(getting_nodes, _From, State=#state{nodes=N})                 ->
-    {reply, N, State, 1000};
+    {reply, N, State};
 handle_call(stop, _From, State)                                          ->
-    {stop, normal, ok, State, 1000}.
+    {stop, normal, ok, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -147,19 +148,20 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(timeout, State=#state{nodes=N}) ->
-    Connected=[X || {Node,_}=X <- N, net_adm:ping(Node) == pong],
-    Restarted =
-	[begin
-	     {ok, Config} = application:get_env(rehc, cluster),
-	     Opt = ?COOKIE(Config),
-	     ?LOG_WARN(?DISCONNECTED_SLAVE, [Node, Ip]),
-	     {Host, Name} = rehc_utility:unmake_node(Node),
-	     {ok, RestartedNode} = slave:start(Host,Name,Opt),
-	     ?LOG_INFO(?RESTORE_SLAVE, [Node, Ip]),
-	     {RestartedNode, Ip}
-	 end || {Node, Ip}=X <- N, false==lists:member(X, Connected)],
-    {noreply, State#state{nodes=Connected++Restarted}, 1000}.
+handle_info({nodedown, NodeDown}, State=#state{nodes=Nodes}) ->
+    [ Ip ] = [ Ip || {Node, Ip} <- Nodes, Node =:= NodeDown],
+    ?LOG_WARN(?DISCONNECTED_SLAVE, [NodeDown, Ip]),
+    Connected = [ X || {Node, _}=X <- Nodes, Node =/= NodeDown ],
+    {Host, Name} = rehc_utility:unmake_node(NodeDown),
+    {ok, Config} = application:get_env(rehc, cluster),
+    {ok, _NodeUp} = slave:start(Host, Name, ?COOKIE(Config)),
+    {noreply, State#state{nodes=Connected}};
+handle_info({nodeup, NodeUp}, State=#state{nodes=Nodes})     ->
+    {HostUp, _} = rehc_utility:unmake_node(NodeUp),
+    {ok, Config} = application:get_env(rehc, cluster),
+    [ IpUp ] = [ Ip || {Host, Ip, _} <- rehc_utility:get_value(Config, servers), Host =:= HostUp],
+    ?LOG_INFO(?RESTORE_SLAVE, [NodeUp, IpUp]),
+    {noreply, State#state{nodes=Nodes ++ [{NodeUp, IpUp}]}}.
 
 %%--------------------------------------------------------------------
 %% @private
