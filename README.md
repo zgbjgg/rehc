@@ -1,7 +1,12 @@
 rehc
-====
+====  
+					         _            
+				            ( )              |
+				 _ __   __  | |__     ___    |
+				( '__)/'__`\|  _ `\ /'___)   |  REHC : remote erlang host control
+				| |  (  ___/| | | |( (___    |   
+				(_)  `\____)(_) (_)`\____)   |
 
-REHC: remote erlang host control
 
 description
 ====
