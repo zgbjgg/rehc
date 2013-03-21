@@ -1,11 +1,10 @@
 rehc
 ====  
-					         _            
-				            ( )              |  
-				 _ __   __  | |__     ___    |  R : remote
-				( '__)/'__`\|  _ `\ /'___)   |  E : erlang
-				| |  (  ___/| | | |( (___    |  H : host
-				(_)  `\____)(_) (_)`\____)   |  C : control
+		            
+		R : remote
+		E : erlang
+		H : host
+		C : control
 
 
 description
