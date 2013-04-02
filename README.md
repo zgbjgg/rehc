@@ -93,7 +93,7 @@ Jorge Garrido <zgbjgg@gmail.com>
 
 LICENSE	
 
-
+THIS SOFTWARE IS LICENSED UNDER BSD LICENSE. see LICENSE.txt for more info
 			
 			
 			
