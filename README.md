@@ -82,16 +82,19 @@ The files have the next structure:
 	
 
 API
+====
 
 rehc provides a based web API to retrive info about remote hosts, using JSON as rpc, please
 refer to rehc_api for more details.
 
 
 Author
+====
 
 Jorge Garrido <zgbjgg@gmail.com>
 
 LICENSE	
+====
 
 THIS SOFTWARE IS LICENSED UNDER BSD LICENSE. see LICENSE.txt for more info
 
