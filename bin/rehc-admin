@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+#
+#    rehc: remote erlang host control    
+#    Copyright (C) 2013  Jorge Garrido <jorge.garrido@morelosoft.com> [zgbjgg]
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+## variable settings
+%%LOCAL_DIR%%
+tmp=tmp
+cookie=rehc
+%%ERL%%
+node=rehc
+hostname=`hostname -s`
+
+
+# make a remote procedure call to erlang node
+# to use this function, send three parameters.
+# first -> send the module name
+# second -> send the function of module name
+# third -> send the args to function, it closed in brackets  
+rpc_stop () {
+        $erl -noshell -sname $tmp -setcookie $cookie -eval 'rpc:call('"$node"'@'"$hostname"', '"$1"', '"$2"', '"$3"')' -s init stop
+}
+# make a remote procedure call to erlang node and stop it 
+# to use this function, send three parameters.
+# first -> send the module name
+# second -> send the function of module name
+# third -> send the args to function, it closed in brackets  
+rpc() {
+	$erl -noshell -sname $tmp -setcookie $cookie -eval 'rpc:call('"$node"'@'"$hostname"', '"$1"', '"$2"', '"$3"')'
+}
+
+## if the first argument is not provided
+[ "$#" -eq 0 ] && echo "Try 'rehc help' for more information" && exit 1
+
+## To each case: start | stop | console | load-avg | show-apps | cluster | help 
+## start: enter to Makefile previously generated, target start
+## stop: kill the process id
+## console: enter to Makefile previously generated, target console 
+## load-avg: load average of a remote host
+## show-apps: show apps configured for remote hosts 
+## cluster: show info about clustered hosts
+## help: prints info about rehc
+if [ $1 = 'start' -a "$#" -eq 1 ]
+        then
+                make -C $LOCAL_DIR start
+elif [ $1 = 'stop' -a "$#" -eq 2 ]
+        then
+                kill -9 $2
+elif [ $1 = 'console' -a "$#" -eq 1 ]
+        then
+                make -C $LOCAL_DIR console
+elif [ $1 = 'load-avg' -a "$#" -eq 2 ]
+        then
+                rpc rehc_clt show_loadavg [\"$2\"]
+elif [ $1 = 'show-apps' -a "$#" -eq 1 ]
+        then
+                rpc_stop rehc_clt show_apps []
+elif [ $1 = 'cluster' -a "$#" -eq 1 ]
+        then
+                rpc_stop rehc_clt cluster []
+elif [ $1 = 'help' -a "$#" -eq 1 ]
+        then
+                man $LOCAL_DIR/.man/./rehc
+else
+        echo "Try 'rehc help' for more information"
+fi

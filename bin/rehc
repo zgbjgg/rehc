@@ -1,0 +1,96 @@
+#!/bin/sh
+#
+#    rehc: remote erlang host control    
+#    Copyright (C) 2013  Jorge Garrido <jorge.garrido@morelosoft.com> [zgbjgg]
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+# chkconfig: 2345 80 30
+# description: RHEC 
+# library for functions related to init services
+. /etc/rc.d/init.d/functions
+# variable settings
+%%RUNNER%%
+%%DAEMON%%
+REHC=rehc
+ERL=erl
+
+## start function, if rehc is running then send the pids where rehc resides
+## if rehc is not running then start it with the daemon
+start() {
+	if [ `ps aux | grep erl | grep $REHC | wc -l` = 0 ]
+	then
+		echo -n $"Starting rehc: "
+		su - $RUNNER -c "$DAEMON start" && success || failure $"$DAEMON rehc start"
+		echo
+		return 0
+	else
+		PIDS=`ps -eo pid,args | grep $ERL | grep $REHC | grep -v grep | cut -c1-6`
+		PIDSN=$(echo $PIDS | tr "\n" " ")
+		echo -e "rehc (pid(s) $PIDSN) is running...."
+		return 1
+	fi 
+}
+
+## stop function, if rehc is running then get the pid for the process and
+## kill it, if rehc is not running then send a simple message 
+stop() {
+	if [ `ps aux | grep erl | grep $REHC | wc -l` -gt 0 ]
+	then
+		PIDS=`ps -eo pid,args | grep $ERL | grep $REHC | grep sname | grep -v grep | cut -c1-6`
+		PIDSN=$(echo $PIDS | tr "\n" " ")
+		echo -n $"Stopping rehc: "
+		su - $RUNNER -c "$DAEMON stop $PIDSN" && success || failure $"$DAEMON rehc stop"
+		echo
+		return 0		
+	else
+		echo "rehc is not running...."
+	fi
+}
+
+## status function, send messages to console about the state of rehc
+status() {
+	if [ `ps aux | grep erl | grep $REHC | wc -l` = 0 ]
+	then
+		echo "rehc is not running...."
+	else
+		PIDS=`ps -eo pid,args | grep $ERL | grep $REHC | grep -v grep | cut -c1-6`
+                PIDSN=$(echo $PIDS | tr "\n" " ")
+                echo -e "rehc (pid(s) $PIDSN) is running...."
+	fi
+}
+ 
+## evaluate cases
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+        status
+        ;;
+  restart)
+        stop
+        start
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop|status|restart}"
+        exit 1
+esac
+
+exit $?
+

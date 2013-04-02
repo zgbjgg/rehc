@@ -1,0 +1,6 @@
+            {app, "freeswitch"}. %% Name of your application.
+            {start, "/usr/local/freeswitch/bin/freeswitch -nc"}. %% The command to start the application.
+            {stop, "/usr/local/freeswitch/bin/freeswitch -x shutdown"}. %% The command to stop the application.
+            {test, "/usr/local/freeswitch/bin/fs_cli -x status | wc -l"}. %% The command to test if the application is running
+            {off, "0"}. %% When the application is down, the message. 
+            {node, "freeswitch_erlang"}. %% Host short name member of the cluster which the application resides.
