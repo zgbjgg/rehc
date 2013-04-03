@@ -26,66 +26,15 @@ Now like unix/linux applications, install normally by:
 
 		./configure && make && make install
 	
-preparing the environment
+The REHC Fast Track
 ====
 
-To allow rehc monitor your hosts, first you must be able to log into remote hosts without a password confirmation via
-ssh or rsh, it will be set in the vm.args file.
-For example if my remote host name (hostname -s) is remote_host, then I must be able to log into it via ssh with:
+Here you can find info about configuration and how to start with rehc: [The REHC Fast Track](https://github.com/jorgegarrido/rehc/wiki/The-REHC-Fast-Track)
 
-		ssh user@remote_host -p 22
-		
-
-when environment is ready, now proceed to configure files for rehc.
-
-configuring files (rehc.config & vm.args)
+Web Based API
 ====
 
-rehc uses two singles files for configuration, vm.args define the node erlang name, cookie for distributed connection
-and rsh which defines the protocol used to log into remote host withou a password (it could be rsh or ssh, we 
-suggest that use ssh).
-
-rehc.config contains many sections where:
-
-	cluster      - it defines the clusterizable system
-	rehc_core    - defines the monitoring options
-	rehc_web_api - defines the API parameters for consume web services
-	rehc_email   - for email receptor of notifications
-
-
-the .rehc files
-====
-
-.rehc files are files that rehc uses for monitoring remote apps, the structure is similar to program a 
-bash script but no loops you need just commands to start, test, stop the remote app. The files are built 
-with pairs of data like {key, value}, where key is a reserved word like: app, start, stop, test, off and node,
-and data is a string "" containing your command as in bash script, finally comments start with '%'.
-The files have the next structure:
-
-	%% Name of your application.
-	{app, "my_app"}.
-
-	%% The command to start the application.
-	{start, "/usr/local/my_app/bin/my_app start"}.
-
-	%% The command to stop the application.
-	{stop, "/usr/local/my_app/bin/my_app-x shutdown"}.
-
-	%% The command to test if the application is running
-	{test, "/usr/local/my_app/bin/my_app -x status | wc -l"}.
-
-	%% When the application is down, the message.
-	{off, "0"}.
-	
-	%% Host short name member of the cluster which the application resides.
-	{node, "my_remote_hostname_s"}.
-	
-
-API
-====
-
-rehc provides a based web API to retrive info about remote hosts, using JSON as rpc, please
-refer to rehc_api for more details.
+rehc provides a based web API to retrive info about remote hosts, visit: [Web Based API](https://github.com/jorgegarrido/rehc/wiki/Web-Based-API)
 
 
 Author
@@ -97,11 +46,4 @@ LICENSE
 ====
 
 THIS SOFTWARE IS LICENSED UNDER BSD LICENSE. see LICENSE.txt for more info
-
-			
-			
-			
-			
-
-
 
