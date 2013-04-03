@@ -70,7 +70,7 @@ handle_websocket(Ws) ->
             {ok, Reference} = rehc_alarm:subscribe(self(), list_to_atom(Node)),            
 	    Ws:send([erlang:ref_to_list(Reference)]),
             handle_websocket(Ws);
-        {browser, [$u, $s, $b, $c, $- | Node]} ->
+        {browser, [$u, $s, $b, $c, $- | _Node]} ->
             ok;
         {host, Msg}                            ->
             Ws:send([lists:flatten(io_lib:format("~p", [Msg]))]),
