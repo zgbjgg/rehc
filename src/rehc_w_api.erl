@@ -92,10 +92,10 @@ force([]) ->
 %% @doc
 %% Forces to integer elements  into lists.
 %%
-%% @spec force_string(list()) -> list()
+%% @spec force_string(list(), Acc :: list()) -> list()
 %% @end
 %%--------------------------------------------------------------------
--spec force_string(list()) -> list().
+-spec force_string(list(), Acc :: list()) -> list().
 force_string([ E | []], Acc) when is_integer(E) ->
     Final = Acc ++ integer_to_list(E),
     list_to_atom(Final);     
