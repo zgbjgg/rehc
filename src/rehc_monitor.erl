@@ -147,6 +147,7 @@ handle_info({ok, 'UP', App}, #state{apps_mon=Apps, my_master_node=Master}) ->
     {noreply, #state{apps_mon=[App | Apps], my_master_node=Master}, 1000};
 handle_info(timeout, #state{apps_mon=Apps, my_master_node=Master}) ->
     NewApps = [ App || App <- Apps, ok =:= av_api(App, Master) ],
+    ok = ping(Apps, Master),
     {noreply, #state{apps_mon=NewApps, my_master_node=Master}, 1000};
 handle_info({'EXIT', _Port ,normal}, State) ->
     {noreply, State, 1000};
@@ -197,3 +198,21 @@ av_api(App, Master) ->
 	_Any   ->
 	    ok
     end.	
+
+
+ping(unset, _Master) 		             -> ok;
+ping([{ip, Ip, port, Port} | Rest], Master) ->
+    ok = case gen_tcp:connect(Ip, Port, [], 1000) of
+             {ok, SocketUp} ->
+	         gen_tcp:close(SocketUp);
+	     {error, Reason}     ->
+		 Net = Ip ++ ":" ++ integer_to_list(Port),
+	         erlang:send({'rehc_alarm', Master}, {'PING-INFO', node(), {Net, Reason}}),
+    	         ok
+    end,
+    ping(Rest, Master);
+ping([], _Master)			      -> ok;
+ping([App | Apps], Master)  	              ->
+    Config = proplists:get_value(ping, App, unset),
+    ok = ping(Config, Master),
+    ping(Apps, Master).    

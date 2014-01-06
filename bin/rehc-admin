@@ -51,7 +51,7 @@ hostname=`hostname -s`
 # second -> send the function of module name
 # third -> send the args to function, it closed in brackets  
 rpc_stop () {
-        $erl -noshell -sname $tmp -setcookie $cookie -eval 'rpc:call('"$node"'@'"$hostname"', '"$1"', '"$2"', '"$3"')' -s init stop
+        $erl -noshell -hidden -sname $tmp -setcookie $cookie -eval 'rpc:call('"$node"'@'"$hostname"', '"$1"', '"$2"', '"$3"')' -s init stop
 }
 # make a remote procedure call to erlang node and stop it 
 # to use this function, send three parameters.
@@ -59,7 +59,7 @@ rpc_stop () {
 # second -> send the function of module name
 # third -> send the args to function, it closed in brackets  
 rpc() {
-	$erl -noshell -sname $tmp -setcookie $cookie -eval 'rpc:call('"$node"'@'"$hostname"', '"$1"', '"$2"', '"$3"')'
+	$erl -noshell -hidden -sname $tmp -setcookie $cookie -eval 'rpc:call('"$node"'@'"$hostname"', '"$1"', '"$2"', '"$3"')'
 }
 
 ## if the first argument is not provided

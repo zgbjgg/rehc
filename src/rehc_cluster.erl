@@ -198,11 +198,12 @@ handle_info({nodeup, NodeUp}, State=#state{nodes=Nodes})     ->
     {ok, RehcCore} = application:get_env(rehc, rehc_core),
     {ok, Cluster} = application:get_env(rehc, cluster),
     RehcConfigDir = rehc_utility:get_value(RehcCore, rehc_config_dir), 
-    {ok, Apps} = rehc_parser:get_config(RehcConfigDir),	
+    {ok, AllApps} = rehc_parser:get_config(RehcConfigDir),	
+    Apps = [ App || App <- AllApps, proplists:get_value(hostname, App) =:= HostUp ],
     Req = rehc_utility:get_value(Cluster, require_apps),
     Run = rehc_os:smart_startup(NodeUp, [{module, rehc_monitor, start_link, [node(), Apps]},
 					 {module, rehc_notifier, start_link, [node()]} | Req], []),
-    ?LOG_INFO("Remote startups: ~p", [Run]), 
+    ?LOG_INFO("Remoting startups: ~p", [Run]), 
     {noreply, State#state{nodes=Nodes ++ [{NodeUp, IpUp}]}}.
 
 %%--------------------------------------------------------------------

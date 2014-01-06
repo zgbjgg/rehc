@@ -69,7 +69,7 @@ stop() {
 	then
 		PIDS=`ps -eo pid,args | grep $ERL | grep $REHC | grep sname | grep -v grep | cut -c1-6`
 		PIDSN=$(echo $PIDS | tr "\n" " ")
-		echo -n $"Stopping rehc: "
+		echo -n $"Stopping rehc: $PIDSN"
 		su - $RUNNER -c "$DAEMON stop $PIDSN" && success || failure $"$DAEMON rehc stop"
 		echo
 		return 0		

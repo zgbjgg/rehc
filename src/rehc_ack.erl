@@ -107,14 +107,16 @@ init([]) ->
     {ok, Cluster} = application:get_env(rehc, cluster),
     [ Timeout, RehcConfigDir ] = rehc_utility:get_values(RehcCore, [max_time_restart, 
 								    rehc_config_dir]),
-    {ok, Config} = rehc_parser:get_config(RehcConfigDir), 
+    {ok, AllApps} = rehc_parser:get_config(RehcConfigDir), 
     Req = rehc_utility:get_value(Cluster, require_apps), 
     Nodes = rehc_cluster:get_nodes(),
     ok = rehc_os:nodes_load([rehc_statistics, rehc_monitor, rehc_notifier]),
-    [ begin 
-	  Run = rehc_os:smart_startup(Node, [{module, rehc_monitor, start_link, [node(), Config]}, 
-					     {module, rehc_notifier, start_link, [node()]} | Req], []), 
-          ?LOG_INFO("Remote startups: ~p", [Run]) 
+    [ begin
+	  {HostUp, _Name} = rehc_utility:unmake_node(Node), 
+	  Apps = [ App || App <- AllApps, proplists:get_value(hostname, App) =:= HostUp ],
+	  Run = rehc_os:smart_startup(Node, [{module, rehc_monitor, start_link, [node(), Apps]}, 
+					     {module, rehc_notifier, start_link, [node()]} | Req], []),   
+	  ?LOG_INFO("Remoting startups: ~p", [Run]) 
         end || {Node, _} <- Nodes ],
     {ok, #state{failure_apps=[], timeout=Timeout}}.
 

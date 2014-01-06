@@ -69,13 +69,15 @@ for DEP in "${DEPS[@]}"; do
 done
 
 ## Download misultin & web api applications
-mkdir -p deps
-cd deps
-# git clone https://github.com/jorgegarrido/rehc_api.git
-echo "downloading dependencies....."
-git clone https://github.com/ostinelli/misultin.git > /dev/null
-cd ..
-
+if [ -d "$pwd/deps/misultin" ]; then
+	echo "dependencies.....yes"
+else
+	mkdir -p deps
+	cd deps
+	echo "downloading dependencies....."
+	git clone https://github.com/jorgegarrido/misultin.git > /dev/null
+	cd ..
+fi
 
 ## variables to append in the Makefile for the run user
 ## variables for this script contain the variable name and value of the
@@ -134,17 +136,23 @@ if [ ${#RUN_USER_COMMANDS[*]} = ${#DEPS[*]} ]
 		done
 		sed -i 's/<//g' $MAKEFILE
                 sed -i 's/>//g' $MAKEFILE
+	        
+		## some string replaced
+                sed -i 's/;/;\'\\\\n\\t'/g' $MAKEFILE	
+		
 		echo -ne "do you want install rehc as service? [y/N]: "
                 read OPT
                 if [ $OPT = "y" ];
                 then
                         sed -i "s/?//g" $MAKEFILE
-                else
+                elif [ $OPT = "N" ];
+		then
                         echo "ignore as service....."
 			sed -i '51,59d' $MAKEFILE
-                fi
-		## some string replaced
-		sed -i 's/;/;\'\\\\n\\t'/g' $MAKEFILE
+                else 
+			echo "option not supported...."
+			rm -rf $MAKEFILE 
+		fi
 		echo "done" 
 else
 	## when nothing to do for make

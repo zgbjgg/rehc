@@ -152,6 +152,9 @@ handle_cast(_Msg, State)  ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_info({'PING-INFO', Node, {Net, Info}}, State=#state{subscriptors=S})	 ->
+    ok = subscriptors_notify(S, Node, {Net, Info}),
+    {noreply, State};
 handle_info({'HOST-INFO', Node, {Mem, Cpu, Disk}}, State=#state{subscriptors=S}) ->
     % MemStats = [ Stats || {Stats, _} <- Mem ],
     % CpuStats = [ Stats || {Stats, _} <- Cpu ],
@@ -202,6 +205,11 @@ code_change(_OldVsn, State, _Extra) ->
 -spec subscriptors_notify(Processes :: list(), Node :: atom(), { Mem :: list(), Cpu :: list(), Disk :: list()}) -> ok.
 subscriptors_notify([], _Node, _Vmstats)                          ->
     ok;
+subscriptors_notify([ {_Ref, {Pid, SubNode}} | Ss ], Node, {Net, Info}) when Node =:= SubNode	   ->
+    Decoder = mochijson2:encoder([{utf8, true}]),
+    JSON = Decoder({struct, [{to, list_to_atom(Net)}, {status, Info}]}),
+    Pid ! {host, to_string(JSON)},
+    subscriptors_notify(Ss, Node, {Net, Info});
 subscriptors_notify([ {_Ref, {Pid, SubNode}} | Ss ], Node, {Mem, Cpu, Disk}) when Node =:= SubNode ->
     Decoder = mochijson2:encoder([{utf8, true}]),
     [ Memory ] = [ {struct, [{stat, Info}, {memory, PList} ]} || {Info, PList} <- Mem ],
