@@ -13,14 +13,14 @@
 	rm -rf src/*.erl~
 	for FILE in `ls src/ | grep .erl`;\
                 do\
-                erlc -I include/ -o ebin/ src/$$FILE;\
-                echo "erlc -I include/ -o ebin/ $$FILE";\
+                erlc -Werror -v -smp -I include/ -o ebin/ src/$$FILE;\
+                echo "erlc -Werror -v -smp -I include/ -o ebin/ $$FILE";\
         done
 	for FILE in `ls src/ | grep .app.src`;\
                 do\
                 cp -f src/rehc.app.src ebin/;\
                 mv ebin/rehc.app.src ebin/rehc.app;\
-                echo "erlc -I include/ -o ebin/ $$FILE";\
+                echo "mv $$FILE";\
         done 
 >
 
@@ -49,8 +49,8 @@
 >
 
 -TARGET=install -DEPENDENCIES=<ebin/*.beam bin/rehc bin/rehc-admin> -COMMANDS <
-	mkdir -p pipes
-	mkdir -p logs
+	mkdir -p $(PIPES_DIR)
+	mkdir -p $(LOGS_DIR)
 	@cp bin/rehc-admin /usr/bin/
         @chmod 755 /usr/bin/rehc-admin
         sed -i "s;%%LOCAL_DIR%%;LOCAL_DIR=$(LOCAL_DIR);g" /usr/bin/rehc-admin
@@ -71,7 +71,7 @@
 	@rm -rf /etc/init.d/rehc
 	@rm -rf /usr/bin/rehc-admin
 	@rm -rf Makefile
-	@rm -rf pipes
-	@rm -rf logs
+	@rm -rf $(PIPES_DIR)
+	@rm -rf $(LOGS_DIR)
 	@rm -rf deps
 >

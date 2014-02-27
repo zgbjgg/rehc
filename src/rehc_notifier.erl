@@ -173,11 +173,11 @@ cpu_alarm({_, _Cpu1, Cpu2, _}=Cpu) ->
     Idle = proplists:get_value(idle, Cpu2),
     cpu_alarm(Cpu, Idle).
 
-cpu_alarm(Cpu, Idle) when Idle<9 ->
+cpu_alarm(Cpu, Idle) when Idle=<9 ->
     [{critical, Cpu}];
-cpu_alarm(Cpu, Idle) when Idle<49 ->
+cpu_alarm(Cpu, Idle) when Idle=<49 ->
     [{warning, Cpu}];
-cpu_alarm(Cpu, Idle) when Idle<100 ->
+cpu_alarm(Cpu, Idle) when Idle=<100 ->
     [{notice, Cpu}].
    
 

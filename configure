@@ -36,6 +36,10 @@
 ## @author zgbjgg@gmail.com
 ## @copyright 2013 Jorge Garrido
 ##
+
+## stdout
+## set -x
+
 ## variables definition 
 DEPS=( ssh-agent ssh erl run_erl to_erl git rebar )
 ON_FAIL="nok"
@@ -60,6 +64,7 @@ for DEP in "${DEPS[@]}"; do
 	STAT=$( checking $DEP )
 	if [ $STAT = $ON_FAIL ]; then
 		echo -e "no\nfor checking $DEP, please install"
+		exit 1
 		break
 	else
 		echo "yes"
@@ -89,8 +94,8 @@ EBIN_DIR=EBIN_DIR:=$(pwd)/ebin
 DEPS_DIR=DEPS:=$(pwd)/deps/misultin/ebin
 ARGS_FILE=ARGS_FILE:=$(pwd)/etc/vm.args
 CONFIG_FILE=CONFIG_FILE:=$(pwd)/etc/rehc.config
-LOGS_DIR=LOGS_DIR:=$(pwd)/logs/
-PIPES_DIR=PIPES_DIR:=$(pwd)/pipes/
+LOGS_DIR=LOGS_DIR:=/tmp/$(pwd)/logs/
+PIPES_DIR=PIPES_DIR:=/tmp/$(pwd)/pipes/
 LOCAL_DIR=LOCAL_DIR:=$(pwd)
 
 ## user environment for the Makefile creation, created as an array

@@ -44,6 +44,9 @@
 -define(DATE_LOG, rehc_utility:formatted_date()++" "++rehc_utility:formatted_time()).
 -define(INFO_MSG(Msg, Args), io:format(Msg, Args)).
 
+
+-define(SSH_CONFIG, "/.ssh/config").
+
 %=============================/ String Messages \=================================
 -define(DOWN_APP, "~p down! ~n").
 -define(ATTEMPT, "~p: trying restart at ~p ......~n").

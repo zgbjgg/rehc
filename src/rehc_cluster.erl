@@ -98,7 +98,7 @@ stop() ->
 %%--------------------------------------------------------------------
 start_link() ->
     {ok, Config} = application:get_env(rehc, cluster),
-    [] = ssh_config(Config),
+    ok = ssh_config(Config),
     gen_server:start_link({local, ?SERVER}, ?MODULE, [Config], []).
 
 %%%===================================================================
@@ -240,17 +240,19 @@ code_change(_OldVsn, State, _Extra) ->
 %% Writes .ssh/config file with info about connections to the remote
 %% hosts that rehc'll control.
 %%
-%% @spec ssh_config(Config :: list()) -> list()
+%% @spec ssh_config(Config :: list()) -> ok | {error, term()}
 %% @end
 %%--------------------------------------------------------------------
--spec ssh_config(Config :: list()) -> list().
+-spec ssh_config(Config :: list()) -> ok | {error, term()}.
 ssh_config(Config) ->
-    [HomeDir]=re:split(os:cmd("echo $HOME"),"[\n]",[{return,list}, trim]),
-    os:cmd("rm -rf " ++ HomeDir ++ "/.ssh/config"),
-    {ok, IoDev} = file:open(HomeDir ++ "/.ssh/config", [write, append]),
+    {ok, [[HomeDir]]} = init:get_argument(home), 
+    ConfigFileSsh = HomeDir ++ ?SSH_CONFIG,
+    file:delete(ConfigFileSsh),
+    {ok, IoDev} = file:open(ConfigFileSsh, [write, append]),
     Servers = rehc_utility:get_value(Config, servers),
     [ begin
 	  io:format(IoDev, "Host\t~s~n\tHostname ~s~n\tPort ~p~n\tUser ~s~n",
 		    [HostName, HostName, Port, User])
       end || {HostName, _, [{user, User}, {port, Port}]} <- Servers ],
-    os:cmd("chmod 600 " ++ HomeDir ++ "/.ssh/config").
+    ok = file:change_mode(ConfigFileSsh, 8#00600),
+    file:close(IoDev).
