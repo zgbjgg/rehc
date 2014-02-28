@@ -1,0 +1,142 @@
+%% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
+%% ex: ft=erlang ts=4 sw=4 et
+%% -------------------------------------------------------------------
+%%
+%%  This escript is intended to create a single interface to manage
+%%  calls to erlang live nodes
+%%
+%%  The script start an erlang node in detached mode,
+%%  the erlang node is running in background and others nodes can
+%%  communicate with this using epmd
+%%
+%% All rights reserved.
+%%
+%% Redistribution and use in source and binary forms, with or without
+%% modification, are permitted provided that the following conditions
+%% are met:
+%% 1. Redistributions of source code must retain the above copyright
+%%    notice, this list of conditions and the following disclaimer.
+%% 2. Redistributions in binary form must reproduce the above copyright
+%%    notice, this list of conditions and the following disclaimer in the
+%%    documentation and/or other materials provided with the distribution.
+%% 3. Neither the name of copyright holders nor the names of its
+%%    contributors may be used to endorse or promote products derived
+%%    from this software without specific prior written permission.
+%%
+%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+%% ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+%% TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+%% PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL COPYRIGHT HOLDERS OR CONTRIBUTORS
+%% BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+%% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+%% SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+%% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+%% CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+%% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+%% POSSIBILITY OF SUCH DAMAGE.
+%%
+%% _____________________________________________________________________________ 
+%%
+%% [ zgbjgg ]
+%%           
+%% @author zgbjgg@gmail.com
+%% @copyright 2014 Jorge Garrido
+%%
+
+%% Main 
+main(Args) ->
+    %%% Tasks to establish a correct connection with the target node! 
+    %% Parse args from command line
+    case get_target_args(Args) of
+        invalid_node_name                  ->
+	    io:format("Invalid node name.\n"),
+	    TargetNode = '', RestArgs = [],
+	    halt(1);
+	{TargetNode, CookieNode, RestArgs} ->
+	    %% Build the tmp node name appending suffix (pid)
+	    {Type, TmpNode} = suffix_node(TargetNode, os:getpid()),
+
+	    %% Set up the node
+	    {ok, _} = net_kernel:start([TmpNode, Type]),    
+	    erlang:set_cookie(node(), CookieNode),   
+
+	    %% Is the target node alive??
+	    ok = node_is_alive(TargetNode)
+    end,
+ 
+    %% What task?
+    case RestArgs of
+        [ "rpc", Module, Function, NewArgs ] ->
+	    case rpc:call(TargetNode, list_to_atom(Module), list_to_atom(Function),
+				string_to_term(NewArgs), 70000) of
+	        _RPC              -> 
+		    ok; %%io:format("~p\n", [RPC]);
+		{badrpc, Reason} ->
+		    io:format("Bad RPC stacktrace ~p.\n", [Reason]),
+	    	    halt(1)
+	    end;
+	Unknown				   ->
+	    io:format("Option ~p unknown, sorry.\n", [Unknown])
+    end,
+    net_kernel:stop().
+
+%%
+%%  Get target args, parse the args into:
+%%
+%%	- valid nodename
+%%	- cookie 
+%%	- args (other options)
+%%
+get_target_args([ Node, Cookie | RestArgs ]) when is_list(Node) ->
+    get_target_args([ nxnode(Node), Cookie | RestArgs ]);
+get_target_args([ nxnode | _ ])					->
+    invalid_node_name;
+get_target_args([ Node, Cookie | RestArgs ]) 			->
+    { Node, list_to_atom(Cookie), RestArgs}.
+
+%%
+%%  If a node target contains a valid name
+%%   
+nxnode(Node) ->
+    case re:split(Node, "@", [{return, list}]) of
+        [ _Name, _Domain ] ->
+	    list_to_atom(Node);
+	_		   ->
+	    nxnode
+    end.
+
+%%
+%%  Suffix to tmp node
+%%
+suffix_node(Node, Suffix) when is_atom(Node) ->
+    suffix_node(atom_to_list(Node), Suffix);
+suffix_node(Node, Suffix) ->
+    [ Name, Domain ] = re:split(Node, "@", [{return, list}]),
+    Tmp = list_to_atom(Name ++ "_ziggy_" ++ Suffix ++ "@" ++ Domain),
+    case lists:member($., Domain) of
+        true  ->
+	    {longnames, Tmp};
+	false ->
+	    {shortnames, Tmp}
+    end.
+
+%%
+%%  If target node is accesible via this node
+%%
+node_is_alive(TargetNode) ->
+   case {net_kernel:hidden_connect_node(TargetNode), net_adm:ping(TargetNode)} of
+        {true, pong} ->
+            ok;
+        {_, pang} ->
+            io:format("REHC: Node ~p not alive.\n", [TargetNode]),
+            halt(1)
+    end.
+
+%%
+%%  String erlang to term erlang
+%%
+string_to_term(String) ->
+    {ok,Tokens,_EndLine} = erl_scan:string(String ++ "."),
+    {ok,AbsForm} = erl_parse:parse_exprs(Tokens),
+    {value,Value,_Bs} = erl_eval:exprs(AbsForm, erl_eval:new_bindings()),
+    Value.

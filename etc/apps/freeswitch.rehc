@@ -14,7 +14,7 @@
 {off, "0"}.
  
 %% Host short name member of the cluster which the application resides.
-{hostname, "freeswitch_erlang"}.
+{hostname, "pc2"}.
 
 %% If you put the option ping on a single rehc file, the ip address
 %% and ports can be pinging for a connection, on the hostname param.

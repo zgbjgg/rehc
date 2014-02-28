@@ -41,7 +41,7 @@
 >
 
 -TARGET=start -DEPENDENCIES=<ebin/*.beam> -COMMANDS <
-	@$(RUN_ERL) -daemon $(PIPES_DIR) $(LOGS_DIR) "exec $(ERL) -config $(CONFIG_FILE) -args_file $(ARGS_FILE) -pa $(DEPS)/ $(EBIN_DIR)/ -eval 'application:start(rehc).'" 
+	@$(RUN_ERL) -daemon $(PIPES_DIR) $(LOGS_DIR) "exec $(ERL) -config $(CONFIG_FILE) -args_file $(ARGS_FILE) -pa $(DEPS)/ebin/ $(EBIN_DIR)/ -eval 'application:start(rehc).'" 
 >
 
 -TARGET=console -DEPENDENCIES=<ebin/*beam> -COMMANDS <

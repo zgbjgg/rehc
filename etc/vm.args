@@ -1,9 +1,9 @@
 ## Name of the master rehc node 
--sname rehc
+-sname rehcs
 
 ## Cookie for distributed erlang. All slaves nodes in the cluster
 ## should have the same cookie or they will not be able to communicate  
--setcookie rehc
+-setcookie rehcs
 
 ## To start the slaves nodes, define the protocol it could be ssh or
 ## rsh, default is set to ssh

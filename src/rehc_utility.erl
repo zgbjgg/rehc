@@ -130,7 +130,7 @@ mnesia_support(enabled, RehcCore) ->
 -spec perform(A :: list()) -> {ok, {A :: list(), Performed :: list()}}.
 perform(A) ->
     [ NodeFlag, StartFlag, StopFlag,
-      AppFlag ] = get_values(A, [ node, start, stop, app ]),
+      AppFlag ] = get_values(A, [ hostname, start, stop, app ]),
     Cmms = [ StopFlag, "killall -9 "++ AppFlag, StartFlag],
     {ok, Cluster} = application:get_env(rehc, cluster),
     Slave = ?MODULE:get_value(Cluster, slave),

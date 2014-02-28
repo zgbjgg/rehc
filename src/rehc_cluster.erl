@@ -41,7 +41,7 @@
 -include("rehc.hrl").
 
 %% API
--export([start_link/0, add_node/3, stop/0, get_nodes/0]).
+-export([start_link/0, add_node/4, stop/0, get_nodes/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -60,12 +60,12 @@
 %% Add node to cluster, the added node is connected with this master 
 %% node.
 %%
-%% @spec add_node(Host :: string(), Name :: string(), Ip :: string()) -> {ok, connected} | {nok, could_not_connect}
+%% @spec add_node(Host :: string(), Ip :: string(), User :: string(), Port :: integer()) -> {ok, connected} | {nok, could_not_connect}
 %% @end
 %%--------------------------------------------------------------------
--spec add_node(Host :: string(), Name :: string(), Ip :: string()) -> {ok, connected} | {nok, could_not_connect}.
-add_node(Host, Name, Ip) ->
-    gen_server:call(?MODULE, {adding_node, Host, Name, Ip}).
+-spec add_node(Host :: string(), Ip :: string(), User :: string(), Port :: integer()) -> {ok, connected} | {nok, could_not_connect}.
+add_node(Host, Ip, User, Port) ->
+    gen_server:call(?MODULE, {adding_node, Host, Ip, User, Port}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -144,15 +144,26 @@ init([Config]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({adding_node, Host, Name, Ip}, _From, State=#state{nodes=N}) ->
+handle_call({adding_node, Host, Ip, User, Port}, _From, State=#state{nodes=_N}) ->
     {ok, Config} = application:get_env(rehc, cluster),
-    {ok, Node} = slave:start(Host, Name, ?COOKIE(Config)),
-    {NewState, Reply} =
-	case net_adm:ping(Node) of
-	    pong -> {State#state{nodes=[{Node,Ip}]++N}, {ok, connected}};
-	    _    -> {State#state{nodes=[]++N}, {nok, could_not_connect}}
-	end,
-    {reply, Reply, NewState};
+    Servers = proplists:get_value(servers, Config),
+    Server = [{Host, Ip, [{user, User}, {port, Port}]}],
+    NewConfig = proplists:delete(servers, Config),
+    ok = application:set_env(rehc, cluster, [{servers, Servers ++ Server}] ++ NewConfig),
+    Name = proplists:get_value(slave, Config),
+    %% Append to ssh config file
+    ok = ssh_config([{servers, Server}]),
+    {ok, Node} = case slave:start(Host, Name, ?COOKIE(Config)) of 
+		     {error, _} -> {ok, unreachable};
+		     Reachable  -> Reachable
+		 end,  	
+    			
+    %%{NewState, Reply} =
+    %%	case net_adm:ping(Node) of
+    %%	    pong -> {State#state{nodes=[{Node,Ip}]++N}, {ok, connected}};
+    %%	    _    -> {State#state{nodes=[]++N}, {nok, could_not_connect}}
+     %%	end,
+    {reply, {ok, Node}, State};
 handle_call(getting_nodes, _From, State=#state{nodes=N})                 ->
     {reply, N, State};
 handle_call(stop, _From, State)                                          ->
@@ -247,8 +258,9 @@ code_change(_OldVsn, State, _Extra) ->
 ssh_config(Config) ->
     {ok, [[HomeDir]]} = init:get_argument(home), 
     ConfigFileSsh = HomeDir ++ ?SSH_CONFIG,
-    file:delete(ConfigFileSsh),
-    {ok, IoDev} = file:open(ConfigFileSsh, [write, append]),
+    %% no deletions on config, 'cause the host could has its own
+    %% file:delete(ConfigFileSsh),
+    {ok, IoDev} = file:open(ConfigFileSsh, [append]),
     Servers = rehc_utility:get_value(Config, servers),
     [ begin
 	  io:format(IoDev, "Host\t~s~n\tHostname ~s~n\tPort ~p~n\tUser ~s~n",

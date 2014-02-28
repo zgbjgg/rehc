@@ -41,26 +41,10 @@
 tmp=tmp
 cookie=rehc
 %%ERL%%
-node=rehc
+node=rehcs
 hostname=`hostname -s`
-
-
-# make a remote procedure call to erlang node
-# to use this function, send three parameters.
-# first -> send the module name
-# second -> send the function of module name
-# third -> send the args to function, it closed in brackets  
-rpc_stop () {
-        $erl -noshell -hidden -sname $tmp -setcookie $cookie -eval 'rpc:call('"$node"'@'"$hostname"', '"$1"', '"$2"', '"$3"')' -s init stop
-}
-# make a remote procedure call to erlang node and stop it 
-# to use this function, send three parameters.
-# first -> send the module name
-# second -> send the function of module name
-# third -> send the args to function, it closed in brackets  
-rpc() {
-	$erl -noshell -hidden -sname $tmp -setcookie $cookie -eval 'rpc:call('"$node"'@'"$hostname"', '"$1"', '"$2"', '"$3"')'
-}
+ESCRIPT=escript
+NODETOOL=$LOCAL_DIR/bin/rehc-node-tool
 
 ## if the first argument is not provided
 [ "$#" -eq 0 ] && echo "Try 'rehc help' for more information" && exit 1
@@ -82,15 +66,15 @@ elif [ $1 = 'stop' -a "$#" -eq 2 ]
 elif [ $1 = 'console' -a "$#" -eq 1 ]
         then
                 make -C $LOCAL_DIR console
-elif [ $1 = 'load-avg' -a "$#" -eq 2 ]
+elif [ $1 = 'failure-apps' -a "$#" -eq 1 ]
         then
-                rpc rehc_clt show_loadavg [\"$2\"]
-elif [ $1 = 'show-apps' -a "$#" -eq 1 ]
-        then
-                rpc_stop rehc_clt show_apps []
+                $ESCRIPT $NODETOOL $node@$hostname $cookie rpc rehc_command_line_tool failure_apps []
 elif [ $1 = 'cluster' -a "$#" -eq 1 ]
         then
-                rpc_stop rehc_clt cluster []
+                $ESCRIPT $NODETOOL $node@$hostname $cookie rpc rehc_command_line_tool cluster []
+elif [ $1 = 'add-slave' -a "$#" -eq 5 ]
+        then
+                $ESCRIPT $NODETOOL $node@$hostname $cookie rpc rehc_command_line_tool add_slave [$2, $3, $4, $5]
 elif [ $1 = 'help' -a "$#" -eq 1 ]
         then
                 man $LOCAL_DIR/.man/./rehc

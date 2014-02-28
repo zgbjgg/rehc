@@ -84,6 +84,7 @@ else
 	cd ..
 fi
 
+
 ## variables to append in the Makefile for the run user
 ## variables for this script contain the variable name and value of the
 ## variable used in the Makefile
@@ -91,7 +92,7 @@ RUN_ERL=RUN_ERL:=${RUN_USER_COMMANDS[3]}
 TO_ERL=TO_ERL:=${RUN_USER_COMMANDS[4]}
 ERL=ERL:=${RUN_USER_COMMANDS[2]}
 EBIN_DIR=EBIN_DIR:=$(pwd)/ebin
-DEPS_DIR=DEPS:=$(pwd)/deps/misultin/ebin
+DEPS_DIR=DEPS:=$(pwd)/deps/*
 ARGS_FILE=ARGS_FILE:=$(pwd)/etc/vm.args
 CONFIG_FILE=CONFIG_FILE:=$(pwd)/etc/rehc.config
 LOGS_DIR=LOGS_DIR:=/tmp/$(pwd)/logs/
