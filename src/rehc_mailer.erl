@@ -39,6 +39,7 @@
 -include("rehc.hrl").
 -export([send/3]).
 
+
 %% @doc Send mail to notify about application state 
 send(A, App, Reason) ->
     Host = rehc_utility:get_value(A, node),
