@@ -62,12 +62,14 @@
 	chkconfig --add rehc
         chkconfig --level 2345 rehc on
         service rehc start
+	update-rc.d rehc defaults
 >
 
 -TARGET=uninstall -DEPENDENCIES=</usr/bin/rehc-admin /etc/init.d/rehc> -COMMANDS <
 	service rehc stop
 	chkconfig --del rehc;\
 	chkconfig rehc off
+	update-rc.d -f rehc remove
 	@rm -rf /etc/init.d/rehc
 	@rm -rf /usr/bin/rehc-admin
 	@rm -rf Makefile

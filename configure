@@ -57,6 +57,20 @@ checking() {
 		echo $ON_SUCCED
 	fi
 }
+
+## Get based distro for checking how the installation could be done
+distro() {
+	if [ -f /etc/debian_version ]; then
+    		DISTRO=Debian
+	elif [ -f /etc/redhat-release ]; then
+    		DISTRO=RedHat
+	else
+    		DISTRO=$(uname -s)
+	fi
+
+	echo $DISTRO	
+}
+
 ## append the path to the dependencie in the array, these paths
 ## will be used for create appropiate Makefile for the run user
 for DEP in "${DEPS[@]}"; do
@@ -72,6 +86,9 @@ for DEP in "${DEPS[@]}"; do
 		RUN_USER_COMMANDS=( "${RUN_USER_COMMANDS[@]}" "$USER_COMMAND" )	
 	fi
 done
+
+DISTRO=$( distro )
+echo "checking for distro.....$DISTRO"
 
 ## Download misultin & web api applications
 if [ -d "$pwd/deps/misultin" ]; then
@@ -150,11 +167,33 @@ if [ ${#RUN_USER_COMMANDS[*]} = ${#DEPS[*]} ]
                 read OPT
                 if [ $OPT = "y" ];
                 then
-                        sed -i "s/?//g" $MAKEFILE
+                       	sed -i "s/?//g" $MAKEFILE
+			case $DISTRO in
+			"RedHat") 
+				sed -i '87,87d' $MAKEFILE
+				sed -i '93,93d' $MAKEFILE
+				;;
+			"Debian")
+				sed -i '84,86d' $MAKEFILE
+				sed -i '89,91d' $MAKEFILE
+				;;
+			"Darwin")
+				## installation just run from this directory
+				echo "Not supported $DISTRO for installation"
+				sed -i '84,87d' $MAKEFILE
+                        	sed -i '87,90d' $MAKEFILE
+				;; 
+			*)	
+				echo "Not supported $DISTRO for installation"
+                        	sed -i '84,87d' $MAKEFILE
+                        	sed -i '87,90d' $MAKEFILE
+				;;
+			esac
                 elif [ $OPT = "N" ];
 		then
                         echo "ignore as service....."
-			sed -i '51,59d' $MAKEFILE
+			sed -i '84,87d' $MAKEFILE	
+			sed -i '87,90d' $MAKEFILE
                 else 
 			echo "option not supported...."
 			rm -rf $MAKEFILE 
