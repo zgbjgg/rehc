@@ -39,9 +39,9 @@
 ## variable settings
 %%LOCAL_DIR%%
 tmp=tmp
-cookie=rehc
+cookie=`grep '\-setcookie' $LOCAL_DIR/etc/vm.args | awk '{print $2}'`
 %%ERL%%
-node=rehcs
+node=`grep '\-[s]*name' $LOCAL_DIR/etc/vm.args | awk '{print $2}'`
 hostname=`hostname -s`
 ESCRIPT=escript
 NODETOOL=$LOCAL_DIR/bin/rehc-node-tool
@@ -68,13 +68,13 @@ elif [ $1 = 'console' -a "$#" -eq 1 ]
                 make -C $LOCAL_DIR console
 elif [ $1 = 'failure-apps' -a "$#" -eq 1 ]
         then
-                $ESCRIPT $NODETOOL $node@$hostname $cookie rpc rehc_command_line_tool failure_apps []
+                $ESCRIPT $NODETOOL $node@$hostname $cookie rpc rehc_command_line_tool failure_apps $@
 elif [ $1 = 'cluster' -a "$#" -eq 1 ]
         then
-                $ESCRIPT $NODETOOL $node@$hostname $cookie rpc rehc_command_line_tool cluster []
+                $ESCRIPT $NODETOOL $node@$hostname $cookie rpc rehc_command_line_tool cluster $@
 elif [ $1 = 'add-slave' -a "$#" -eq 5 ]
         then
-                $ESCRIPT $NODETOOL $node@$hostname $cookie rpc rehc_command_line_tool add_slave [$2, $3, $4, $5]
+                $ESCRIPT $NODETOOL $node@$hostname $cookie rpc rehc_command_line_tool add_slave $@
 elif [ $1 = 'help' -a "$#" -eq 1 ]
         then
                 man $LOCAL_DIR/.man/./rehc

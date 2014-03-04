@@ -206,26 +206,17 @@ code_change(_OldVsn, State, _Extra) ->
 subscriptors_notify([], _Node, _Vmstats)                          ->
     ok;
 subscriptors_notify([ {_Ref, {Pid, SubNode}} | Ss ], Node, {Net, Info}) when Node =:= SubNode	   ->
-    Decoder = mochijson2:encoder([{utf8, true}]),
-    JSON = Decoder({struct, [{to, list_to_atom(Net)}, {status, Info}]}),
-    Pid ! {host, to_string(JSON)},
+    Back = rehc_utility:encode_mode_back({struct, [{to, list_to_atom(Net)}, {status, Info}]}),
+    Pid ! {host, Back},
     subscriptors_notify(Ss, Node, {Net, Info});
 subscriptors_notify([ {_Ref, {Pid, SubNode}} | Ss ], Node, {Mem, Cpu, Disk}) when Node =:= SubNode ->
-    Decoder = mochijson2:encoder([{utf8, true}]),
     [ Memory ] = [ {struct, [{stat, Info}, {memory, PList} ]} || {Info, PList} <- Mem ],
     [ Processor ] = [ {struct, [{stat, Info}, {cpu, L1 ++ L2}] }|| {Info, {_, L1, L2, _}} <- Cpu ], 
     
     Disks = [ {struct, [{stat, Info}, {disk, {struct, [ {file_system, FS}|| {FS,_}<- PList]} }]} || {Info, PList} <- Disk ], 
-    JSON = Decoder({array, [Memory, Processor, {array, Disks}]}),
-    Pid ! {host, to_string(JSON)},
+    Back = rehc_utility:encode_mode_back({array, [Memory, Processor, {array, Disks}]}),
+    Pid ! {host, Back},
     subscriptors_notify(Ss, Node, {Mem, Cpu, Disk});
 subscriptors_notify([ _ | Ss ], Node, Vmstats) ->
     subscriptors_notify(Ss, Node, Vmstats).
 
-%% @spec to_string([] | term() | list()) -> string()
-%% @doc Make a string to send via REST service.
--spec to_string([] | term() | list()) -> string().
-to_string([])                    -> "";
-to_string(H) when not is_list(H) -> [H];
-to_string([H | T])               ->
-    to_string(H) ++ to_string(T).

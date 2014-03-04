@@ -39,6 +39,14 @@
 -include("rehc.hrl").
 -export([cluster/0, failure_apps/0, add_slave/4]).
 
+%%--------------------------------------------------------------------
+%% @doc
+%% Shows the actual cluster members (slaves), where rehc is supervising
+%%
+%% @spec cluster() -> term()
+%% @end
+%%--------------------------------------------------------------------
+-spec  cluster() -> term().
 cluster() ->
     Cluster = rehc_cluster:get_nodes(),
     io:format("~79..#s~n", [""]),
@@ -46,8 +54,17 @@ cluster() ->
     io:format("~79..#s~n~n", [""]),
     io:format("~-30s ~-15s \n", ["Hostname", "IP"]),
     io:format("~79..-s~n", [""]),
-    [ io:format("~-30s ~-15s \n", [atom_to_list(Hostname), Ip]) || {Hostname, Ip} <- Cluster ].
+    [ io:format("~-30s ~-15s \n\n", [atom_to_list(Hostname), Ip]) || {Hostname, Ip} <- Cluster ].
 
+ 
+%%--------------------------------------------------------------------
+%% @doc
+%% Shows the failure apps
+%%
+%% @spec failure_apps() -> term()
+%% @end
+%%--------------------------------------------------------------------
+-spec failure_apps() -> term().
 failure_apps() ->
     {ok, AppsFailure} = rehc_ack:get_failure_apps(),
     io:format("~79..#s~n", [""]),
@@ -55,10 +72,18 @@ failure_apps() ->
     io:format("~79..#s~n", [""]),
     io:format("~-30s ~-30s ~s\n", ["App", "Hostname", "Pinging"]),
     io:format("~79..-s~n", [""]),
-    [ io:format("~-30s ~-15s ~p\n", [proplists:get_value(app, App), proplists:get_value(hostname, App), proplists:get_value(ping, App)]) || App <- AppsFailure ].
+    [ io:format("~-30s ~-15s ~p\n\n", [proplists:get_value(app, App), proplists:get_value(hostname, App), proplists:get_value(ping, App)]) || App <- AppsFailure ].
 
+%%--------------------------------------------------------------------
+%% @doc
+%% Add a new slave to the monitored process
+%%
+%% @spec add_slave(Hostname :: string(), Ip :: string(), User :: string(), Port :: string()) -> term()
+%% @end
+%%--------------------------------------------------------------------
+-spec add_slave(Hostname :: string(), Ip :: string(), User :: string(), Port :: string()) -> term().
 add_slave(Hostname, Ip, User, Port) ->
     ExitStatus = rehc_cluster:add_node(Hostname, Ip, User, list_to_integer(Port)),
-    io:format("~-30p \n", ["Add Slave"]),
-    io:format("~79..-s~n", [""]),
-    io:format("~-30p \n", [ExitStatus]).
+    io:format("~-30s \n", ["Add Slave"]),
+    io:format("~45..-s~n", [""]),
+    io:format("~p \n\n", [ExitStatus]).

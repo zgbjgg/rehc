@@ -66,11 +66,12 @@ main(Args) ->
  
     %% What task?
     case RestArgs of
-        [ "rpc", Module, Function, NewArgs ] ->
+        [ "rpc", Module, Function | NewArgs ] ->
+	    [ _ | ArgsFun ] = NewArgs,
 	    case rpc:call(TargetNode, list_to_atom(Module), list_to_atom(Function),
-				string_to_term(NewArgs), 70000) of
+				ArgsFun, 70000) of
 	        _RPC              -> 
-		    ok; %%io:format("~p\n", [RPC]);
+		    ok;
 		{badrpc, Reason} ->
 		    io:format("Bad RPC stacktrace ~p.\n", [Reason]),
 	    	    halt(1)
@@ -112,7 +113,7 @@ suffix_node(Node, Suffix) when is_atom(Node) ->
     suffix_node(atom_to_list(Node), Suffix);
 suffix_node(Node, Suffix) ->
     [ Name, Domain ] = re:split(Node, "@", [{return, list}]),
-    Tmp = list_to_atom(Name ++ "_ziggy_" ++ Suffix ++ "@" ++ Domain),
+    Tmp = list_to_atom(Name ++ "_rehc_" ++ Suffix ++ "@" ++ Domain),
     case lists:member($., Domain) of
         true  ->
 	    {longnames, Tmp};
@@ -131,12 +132,3 @@ node_is_alive(TargetNode) ->
             io:format("REHC: Node ~p not alive.\n", [TargetNode]),
             halt(1)
     end.
-
-%%
-%%  String erlang to term erlang
-%%
-string_to_term(String) ->
-    {ok,Tokens,_EndLine} = erl_scan:string(String ++ "."),
-    {ok,AbsForm} = erl_parse:parse_exprs(Tokens),
-    {value,Value,_Bs} = erl_eval:exprs(AbsForm, erl_eval:new_bindings()),
-    Value.

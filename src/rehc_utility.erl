@@ -38,7 +38,8 @@
 -author('zgbjgg@gmail.com').
 
 -export([make_node/2, unmake_node/1, mnesia_support/2, no_empty_lists/1, get_value/2, 
-	 get_values/2, perform/1, formatted_date/0, formatted_time/0, get_env_api/0]).
+	 get_values/2, perform/1, formatted_date/0, formatted_time/0, get_env_api/0,
+	 to_string/1, encode_mode_back/1]).
 
 %%%===================================================================
 %%% PUBLIC API
@@ -175,3 +176,27 @@ get_env_api() ->
     Methods = proplists:get_value(allow_methods, Api),
     Origin = proplists:get_value(allow_origin, Api),
     [Origin, Methods, Headers].
+
+%% @spec to_string([] | term() | list()) -> string()
+%% @doc Make a string to send via WS service.
+-spec to_string([] | term() | list()) -> string().
+to_string([])                    -> "";
+to_string(H) when not is_list(H) -> [H];
+to_string([H | T])               ->
+    to_string(H) ++ to_string(T).
+
+%% @spec encode_mode_back({'json' | 'xml' | 'x-erlang-term', term()} | term()) -> term()
+%% @doc Encodes the back response as env
+-spec encode_mode_back({'json' | 'xml' | 'x-erlang-term', term()} | term()) -> term().
+encode_mode_back({'json', ToEncode}) 	      ->
+    Decoder = mochijson2:encoder([{utf8, true}]),
+    Json = Decoder(ToEncode),
+    to_string(Json);
+encode_mode_back({'xml', ToEncode})	      ->
+    ToEncode;
+encode_mode_back({'x-erlang-term', ToEncode}) ->
+    term_to_binary(ToEncode);
+encode_mode_back(ToEncode) 	     ->
+    {ok, Core} = application:get_env(rehc, rehc_core),
+    ModeBack = proplists:get_value(mode_back, Core, 'json'),
+    encode_mode_back({ModeBack, ToEncode}).
