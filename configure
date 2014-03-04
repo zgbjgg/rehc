@@ -175,7 +175,7 @@ if [ ${#RUN_USER_COMMANDS[*]} = ${#DEPS[*]} ]
 				;;
 			"Debian")
 				sed -i '84,86d' $MAKEFILE
-				sed -i '89,91d' $MAKEFILE
+				sed -i '89,90d' $MAKEFILE
 				;;
 			"Darwin")
 				## installation just run from this directory
